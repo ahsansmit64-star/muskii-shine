@@ -4,6 +4,21 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+@utility lazy-section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 600px;
+}
+
+@utility no-select {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
 /*
  * Design system definition.
  *
