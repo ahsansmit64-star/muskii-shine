@@ -144,3 +144,17 @@ export const placeOrder = createServerFn({ method: "POST" })
 
     return { orderId: order.id, total: order.total_pkr, subtotal, discount, delivery };
   });
+
+export const listMyOrders = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("orders")
+      .select(
+        "id, created_at, status, city, subtotal_pkr, discount_pkr, delivery_pkr, total_pkr, order_items(id, product_name, unit_price_pkr, quantity, size, shape, finish)",
+      )
+      .eq("user_id", context.userId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
