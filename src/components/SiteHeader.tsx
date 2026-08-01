@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ShoppingBag, LogOut } from "lucide-react";
 import { HeaderLogo } from "@/components/brand/HeaderLogo";
+import { Button } from "@/components/ui/button";
 import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,14 +26,14 @@ export function SiteHeader() {
               >
                 My orders
               </Link>
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="icon-touch"
                 onClick={() => void supabase.auth.signOut()}
                 aria-label="Sign out"
-                className="inline-flex h-12 w-12 items-center justify-center rounded-md hover:bg-secondary"
               >
-                <LogOut className="h-5 w-5" aria-hidden="true" />
-              </button>
+                <LogOut aria-hidden="true" />
+              </Button>
             </>
           ) : (
             <Link
@@ -43,19 +44,19 @@ export function SiteHeader() {
             </Link>
           )}
 
-          <button
-            type="button"
+          <Button
+            size="icon-touch"
             onClick={() => setOpen(true)}
             aria-label={`Open cart, ${count} items`}
-            className="relative inline-flex h-12 w-12 items-center justify-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+            className="relative"
           >
-            <ShoppingBag className="h-5 w-5" aria-hidden="true" />
+            <ShoppingBag aria-hidden="true" />
             {count > 0 ? (
               <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-gold px-1.5 text-xs font-bold text-accent-foreground">
                 {count}
               </span>
             ) : null}
-          </button>
+          </Button>
         </nav>
       </div>
     </header>
