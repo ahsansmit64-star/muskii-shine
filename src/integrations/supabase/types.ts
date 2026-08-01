@@ -14,13 +14,230 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      order_items: {
+        Row: {
+          custom_mm: string | null
+          finish: string
+          id: string
+          order_id: string
+          product_id: string
+          product_name: string
+          quantity: number
+          shape: string
+          size: string
+          unit_price_pkr: number
+        }
+        Insert: {
+          custom_mm?: string | null
+          finish: string
+          id?: string
+          order_id: string
+          product_id: string
+          product_name: string
+          quantity: number
+          shape: string
+          size: string
+          unit_price_pkr: number
+        }
+        Update: {
+          custom_mm?: string | null
+          finish?: string
+          id?: string
+          order_id?: string
+          product_id?: string
+          product_name?: string
+          quantity?: number
+          shape?: string
+          size?: string
+          unit_price_pkr?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          area: string
+          city: string
+          created_at: string
+          delivery_pkr: number
+          discount_code: string | null
+          discount_pkr: number
+          full_name: string
+          id: string
+          phone: string
+          postal_code: string
+          status: string
+          street: string
+          subtotal_pkr: number
+          total_pkr: number
+          user_id: string
+        }
+        Insert: {
+          area: string
+          city: string
+          created_at?: string
+          delivery_pkr?: number
+          discount_code?: string | null
+          discount_pkr?: number
+          full_name: string
+          id?: string
+          phone: string
+          postal_code: string
+          status?: string
+          street: string
+          subtotal_pkr: number
+          total_pkr: number
+          user_id: string
+        }
+        Update: {
+          area?: string
+          city?: string
+          created_at?: string
+          delivery_pkr?: number
+          discount_code?: string | null
+          discount_pkr?: number
+          full_name?: string
+          id?: string
+          phone?: string
+          postal_code?: string
+          status?: string
+          street?: string
+          subtotal_pkr?: number
+          total_pkr?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          created_at: string
+          description: string
+          finish: string
+          id: string
+          image_url: string
+          is_active: boolean
+          name: string
+          palette: string
+          price_pkr: number
+          shape: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          finish?: string
+          id?: string
+          image_url: string
+          is_active?: boolean
+          name: string
+          palette?: string
+          price_pkr: number
+          shape?: string
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          finish?: string
+          id?: string
+          image_url?: string
+          is_active?: boolean
+          name?: string
+          palette?: string
+          price_pkr?: number
+          shape?: string
+          slug?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          discount_code: string | null
+          discount_percent: number
+          free_delivery: boolean
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          discount_code?: string | null
+          discount_percent?: number
+          free_delivery?: boolean
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          discount_code?: string | null
+          discount_percent?: number
+          free_delivery?: boolean
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_spins: {
+        Row: {
+          discount_percent: number
+          free_delivery: boolean
+          has_spun: boolean
+          prize_label: string
+          spun_at: string
+          user_id: string
+        }
+        Insert: {
+          discount_percent?: number
+          free_delivery?: boolean
+          has_spun?: boolean
+          prize_label: string
+          spun_at?: string
+          user_id: string
+        }
+        Update: {
+          discount_percent?: number
+          free_delivery?: boolean
+          has_spun?: boolean
+          prize_label?: string
+          spun_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      perform_spin: {
+        Args: never
+        Returns: {
+          already_spun: boolean
+          discount_percent: number
+          free_delivery: boolean
+          prize_label: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
