@@ -33,6 +33,7 @@ export const listProducts = createServerFn({ method: "GET" }).handler(async () =
 });
 
 const orderSchema = z.object({
+  // Address and phone are validated server-side; prices are never taken from the client.
   fullName: z.string().trim().min(2).max(100),
   street: z.string().trim().min(3).max(160),
   area: z.string().trim().min(2).max(100),
