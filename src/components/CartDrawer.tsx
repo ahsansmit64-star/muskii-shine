@@ -116,7 +116,7 @@ export function CartDrawer() {
             </div>
           </dl>
           <p className="mt-2 text-xs text-muted-foreground">
-            The final total is calculated again on the server before your order is saved.
+            Presentation build: totals are calculated in your browser.
           </p>
           <Button
             size="touch"
@@ -124,10 +124,10 @@ export function CartDrawer() {
             disabled={items.length === 0}
             onClick={() => {
               setOpen(false);
-              void navigate({ to: user ? "/checkout" : "/auth" });
+              void navigate({ to: "/checkout" });
             }}
           >
-            {user ? "Checkout" : "Sign in to checkout"}
+            Checkout
           </Button>
         </div>
       </SheetContent>
