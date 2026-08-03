@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CartProvider } from "@/hooks/useCart";
+import { RewardProvider } from "@/hooks/useReward";
 import { CartDrawer } from "@/components/CartDrawer";
 import { SpinWheel } from "@/components/SpinWheel";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -135,7 +136,8 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <CartProvider>
+      <RewardProvider>
+        <CartProvider>
         <div className="flex min-h-screen flex-col">
           <SiteHeader />
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
@@ -147,7 +149,8 @@ function RootComponent() {
         <CartDrawer />
         <SpinWheel />
         <Toaster />
-      </CartProvider>
+        </CartProvider>
+      </RewardProvider>
     </QueryClientProvider>
   );
 }
