@@ -1,5 +1,4 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import {
   Sheet,
@@ -10,27 +9,13 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/hooks/useCart";
-import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { useReward } from "@/hooks/useReward";
 import { formatPKR, DELIVERY_PKR } from "@/lib/money";
 
 export function CartDrawer() {
   const { items, open, setOpen, remove, setQuantity, subtotal } = useCart();
-  const { user } = useAuth();
+  const { reward } = useReward();
   const navigate = useNavigate();
-
-  const { data: reward } = useQuery({
-    queryKey: ["reward", user?.id],
-    enabled: Boolean(user),
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("discount_code, discount_percent, free_delivery")
-        .eq("id", user!.id)
-        .maybeSingle();
-      return data;
-    },
-  });
 
   const percent = reward?.discount_percent ?? 0;
   const discount = Math.round((subtotal * percent) / 100);
