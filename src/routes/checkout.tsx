@@ -10,7 +10,7 @@ import { placeOrder } from "@/lib/shop.functions";
 import { formatPKR } from "@/lib/money";
 import { cleanText, PK_PHONE_REGEX } from "@/lib/sanitize";
 
-export const Route = createFileRoute("/_authenticated/checkout")({
+export const Route = createFileRoute("/checkout")({
   head: () => ({
     meta: [
       { title: "Checkout — Nail by Muskii" },

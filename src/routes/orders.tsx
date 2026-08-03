@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { listMyOrders } from "@/lib/shop.functions";
 import { formatPKR } from "@/lib/money";
 
-export const Route = createFileRoute("/_authenticated/orders")({
+export const Route = createFileRoute("/orders")({
   head: () => ({
     meta: [
       { title: "My orders — Nail by Muskii" },
