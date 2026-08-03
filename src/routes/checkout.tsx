@@ -1,13 +1,11 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
-import { useMutation } from "@tanstack/react-query";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCart } from "@/hooks/useCart";
-import { placeOrder } from "@/lib/shop.functions";
-import { formatPKR } from "@/lib/money";
+import { useReward } from "@/hooks/useReward";
+import { formatPKR, DELIVERY_PKR } from "@/lib/money";
+import { buildOrder, saveOrder } from "@/lib/mock-store";
 import { cleanText, PK_PHONE_REGEX } from "@/lib/sanitize";
 
 export const Route = createFileRoute("/checkout")({
@@ -39,8 +37,8 @@ type AddressKey = (typeof FIELDS)[number]["key"];
 
 function Checkout() {
   const { items, subtotal, clear } = useCart();
+  const { reward, clearReward } = useReward();
   const navigate = useNavigate();
-  const submitOrder = useServerFn(placeOrder);
   const [step, setStep] = useState<1 | 2>(1);
   const [address, setAddress] = useState<Record<AddressKey, string>>({
     fullName: "",
@@ -52,28 +50,23 @@ function Checkout() {
   const [phone, setPhone] = useState("");
   const [done, setDone] = useState<{ orderId: string; total: number } | null>(null);
 
-  const mutation = useMutation({
-    mutationFn: () =>
-      submitOrder({
-        data: {
-          ...address,
-          phone: cleanText(phone, 20),
-          items: items.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            size: item.size,
-            customMm: item.customMm ?? null,
-            shape: item.shape,
-            finish: item.finish,
-          })),
-        },
-      }),
-    onSuccess: (result) => {
-      clear();
-      setDone({ orderId: result.orderId, total: result.total });
-    },
-    onError: (error: Error) => toast.error(error.message || "We could not place the order."),
-  });
+  const percent = reward?.discount_percent ?? 0;
+  const discount = Math.round((subtotal * percent) / 100);
+  const delivery = reward?.free_delivery ? 0 : DELIVERY_PKR;
+
+  const placeOrder = () => {
+    const order = buildOrder({
+      city: cleanText(address.city, 80),
+      items,
+      subtotal,
+      discount,
+      delivery,
+    });
+    saveOrder(order);
+    clear();
+    if (percent > 0 || reward?.free_delivery) clearReward();
+    setDone({ orderId: order.id, total: order.total_pkr });
+  };
 
   if (done) {
     return (
@@ -113,8 +106,9 @@ function Checkout() {
     <main className="mx-auto max-w-xl px-4 py-12">
       <h1 className="text-2xl font-bold">Checkout</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Step {step} of 2 · items subtotal {formatPKR(subtotal)}. The final total is calculated on our
-        server from current prices.
+        Step {step} of 2 · items subtotal {formatPKR(subtotal)} · delivery{" "}
+        {delivery === 0 ? "free" : formatPKR(delivery)}
+        {percent > 0 ? ` · ${percent}% spin discount applied` : ""}.
       </p>
 
       {step === 1 ? (
@@ -151,7 +145,7 @@ function Checkout() {
           className="mt-6 grid gap-4"
           onSubmit={(event) => {
             event.preventDefault();
-            if (phoneValid) mutation.mutate();
+            if (phoneValid) placeOrder();
           }}
         >
           <label className="block">
@@ -179,8 +173,8 @@ function Checkout() {
             <Button size="touch" variant="outline" type="button" onClick={() => setStep(1)}>
               Back
             </Button>
-            <Button size="touch" type="submit" disabled={!phoneValid || mutation.isPending}>
-              {mutation.isPending ? "Placing order…" : "Place order"}
+            <Button size="touch" type="submit" disabled={!phoneValid}>
+              Place order
             </Button>
           </div>
         </form>
