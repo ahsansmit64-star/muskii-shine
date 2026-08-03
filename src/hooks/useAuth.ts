@@ -1,27 +1,15 @@
-import { useEffect, useState } from "react";
-import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+/**
+ * Static presentation build: no backend auth.
+ * Every visitor is treated as a signed-in demo customer so all features are visible.
+ */
+export type MockUser = { id: string; email: string; name: string };
+
+export const MOCK_USER: MockUser = {
+  id: "demo-user",
+  email: "demo@nailbymuskii.pk",
+  name: "Demo Customer",
+};
 
 export function useAuth() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
-      setSession(next);
-      setUser(next?.user ?? null);
-      setLoading(false);
-    });
-
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => sub.subscription.unsubscribe();
-  }, []);
-
-  return { session, user, loading };
+  return { user: MOCK_USER, session: null, loading: false, isLoggedIn: true } as const;
 }

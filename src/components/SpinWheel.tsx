@@ -1,80 +1,66 @@
-import { useEffect, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useEffect, useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useReward } from "@/hooks/useReward";
+import { loadReward, type Reward } from "@/lib/mock-store";
 
-const SLICES = [
-  "5% Off",
-  "10% Off",
-  "15% Off",
-  "Free Delivery",
-  "20% Off",
-  "Better Luck Next Time",
+const SLICES: Reward[] = [
+  { prize_label: "5% Off", discount_percent: 5, free_delivery: false, discount_code: "MUSKII5" },
+  { prize_label: "10% Off", discount_percent: 10, free_delivery: false, discount_code: "MUSKII10" },
+  { prize_label: "15% Off", discount_percent: 15, free_delivery: false, discount_code: "MUSKII15" },
+  {
+    prize_label: "Free Delivery",
+    discount_percent: 0,
+    free_delivery: true,
+    discount_code: "MUSKIISHIP",
+  },
+  { prize_label: "20% Off", discount_percent: 20, free_delivery: false, discount_code: "MUSKII20" },
+  {
+    prize_label: "Better Luck Next Time",
+    discount_percent: 0,
+    free_delivery: false,
+    discount_code: null,
+  },
 ];
 
-type SpinResult = {
-  prize_label: string;
-  discount_percent: number;
-  free_delivery: boolean;
-  already_spun: boolean;
-};
-
 export function SpinWheel() {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
+  const { setReward } = useReward();
   const [open, setOpen] = useState(false);
   const [spinning, setSpinning] = useState(false);
   const [angle, setAngle] = useState(0);
-  const [result, setResult] = useState<SpinResult | null>(null);
-  const checkedFor = useRef<string | null>(null);
+  const [result, setResult] = useState<Reward | null>(null);
 
   useEffect(() => {
-    if (!user || checkedFor.current === user.id) return;
-    checkedFor.current = user.id;
-
-    // The spin record lives in the database, so refreshing or clearing local
-    // storage cannot unlock a second spin.
-    void supabase
-      .from("user_spins")
-      .select("has_spun")
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (!data?.has_spun) setOpen(true);
-      });
-  }, [user]);
-
-  const spin = async () => {
-    if (spinning) return;
-    setSpinning(true);
-    const { data, error } = await supabase.rpc("perform_spin");
-    const outcome = (Array.isArray(data) ? data[0] : data) as SpinResult | undefined;
-
-    if (error || !outcome) {
-      setSpinning(false);
-      setResult({
-        prize_label: "Spin unavailable right now",
-        discount_percent: 0,
-        free_delivery: false,
-        already_spun: true,
-      });
+    // Presentation build: the spin result is kept in local storage only.
+    const existing = loadReward();
+    if (existing) {
+      setResult(existing);
       return;
     }
+    setOpen(true);
+  }, []);
 
-    const index = Math.max(SLICES.indexOf(outcome.prize_label), 0);
-    const sliceAngle = 360 / SLICES.length;
-    setAngle(360 * 5 + (360 - index * sliceAngle - sliceAngle / 2));
+  const sliceAngle = 360 / SLICES.length;
+
+  const spin = () => {
+    if (spinning || result) return;
+    setSpinning(true);
+    const index = Math.floor(Math.random() * SLICES.length);
+    const outcome = SLICES[index]!;
+    setAngle((current) => current + 360 * 5 + (360 - index * sliceAngle - sliceAngle / 2));
 
     window.setTimeout(() => {
       setSpinning(false);
       setResult(outcome);
-      void queryClient.invalidateQueries({ queryKey: ["reward"] });
+      setReward(outcome);
     }, 3200);
   };
-
-  const sliceAngle = 360 / SLICES.length;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -82,7 +68,7 @@ export function SpinWheel() {
         <DialogHeader>
           <DialogTitle>One lucky spin</DialogTitle>
           <DialogDescription>
-            You get a single spin on this account. The result is decided and stored on our server.
+            You get a single spin. Whatever you win applies to your cart automatically.
           </DialogDescription>
         </DialogHeader>
 
@@ -96,14 +82,14 @@ export function SpinWheel() {
           >
             {SLICES.map((slice, index) => (
               <span
-                key={slice}
+                key={slice.prize_label}
                 className="absolute left-1/2 top-1/2 w-24 -translate-y-1/2 text-center text-[11px] font-bold leading-tight text-primary-foreground"
                 style={{
                   transform: `rotate(${index * sliceAngle + sliceAngle / 2}deg) translateX(28px)`,
                   transformOrigin: "left center",
                 }}
               >
-                {slice}
+                {slice.prize_label}
               </span>
             ))}
             <span
@@ -121,7 +107,7 @@ export function SpinWheel() {
             <p className="text-sm font-bold text-primary">{result.prize_label}</p>
             <p className="mt-1 text-xs text-muted-foreground">
               {result.discount_percent > 0 || result.free_delivery
-                ? "Saved to your account. It applies automatically at checkout."
+                ? `Code ${result.discount_code} applies automatically at checkout.`
                 : "No reward this time. Your spin has been used."}
             </p>
             <Button size="touch" className="mt-3 w-full" onClick={() => setOpen(false)}>
@@ -129,7 +115,13 @@ export function SpinWheel() {
             </Button>
           </div>
         ) : (
-          <Button size="touch" variant="gold" className="mt-3 w-full" onClick={() => void spin()} disabled={spinning}>
+          <Button
+            size="touch"
+            variant="gold"
+            className="mt-3 w-full"
+            onClick={spin}
+            disabled={spinning}
+          >
             {spinning ? "Spinning…" : "Spin the wheel"}
           </Button>
         )}

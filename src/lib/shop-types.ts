@@ -11,7 +11,7 @@ export type Product = {
 };
 
 export const SIZES = ["XS", "S", "M", "L", "Custom"] as const;
-export const SHAPES = ["Almond", "Coffin", "Stiletto", "Square"] as const;
+export const SHAPES = ["Almond", "Coffin", "Stiletto", "Square", "Oval"] as const;
 export const FINISHES = ["Glossy", "Matte"] as const;
 
 export type CartItem = {

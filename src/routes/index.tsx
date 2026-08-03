@@ -1,18 +1,12 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { Instagram } from "lucide-react";
 import { RippleBackground } from "@/components/RippleBackground";
 import { ProductDialog } from "@/components/ProductDialog";
 import { Button } from "@/components/ui/button";
-import { listProducts } from "@/lib/shop.functions";
+import { MOCK_PRODUCTS, suggestFor } from "@/lib/mock-catalog";
 import { formatPKR } from "@/lib/money";
 import type { Product } from "@/lib/shop-types";
-
-const productsQuery = queryOptions({
-  queryKey: ["products"],
-  queryFn: () => listProducts(),
-});
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -32,24 +26,13 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  loader: ({ context }) => {
-    void context.queryClient.ensureQueryData(productsQuery);
-  },
   component: Home,
 });
 
 function Home() {
-  const { data: products } = useSuspenseQuery(productsQuery);
+  const products = MOCK_PRODUCTS;
   const [selected, setSelected] = useState<Product | null>(null);
-
-  const suggestions = useMemo(() => {
-    if (!selected) return [];
-    const sameFamily = products.filter(
-      (p) => p.id !== selected.id && p.palette === selected.palette,
-    );
-    const others = products.filter((p) => p.id !== selected.id && p.palette !== selected.palette);
-    return [...sameFamily, ...others].slice(0, 3);
-  }, [products, selected]);
+  const suggestions = selected ? suggestFor(selected, 3) : [];
 
   return (
     <main>
