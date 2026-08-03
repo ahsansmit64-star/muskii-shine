@@ -40,8 +40,8 @@ function slugify(value: string): string {
 }
 
 /** 60 mock sets: every design in every shape, priced PKR 1,800 – 4,500. */
-export const MOCK_PRODUCTS: Product[] = DESIGNS.flatMap((design, designIndex) =>
-  SHAPES.map((shape, shapeIndex) => {
+export const MOCK_PRODUCTS: Product[] = SHAPES.flatMap((shape, shapeIndex) =>
+  DESIGNS.map((design, designIndex) => {
     const step = designIndex * SHAPES.length + shapeIndex;
     const name = `${design.base} — ${shape}`;
     return {
