@@ -29,6 +29,17 @@ const SLICES: Reward[] = [
   },
 ];
 
+const SLICE_ANGLE = 360 / SLICES.length;
+
+function normaliseAngle(value: number) {
+  return ((value % 360) + 360) % 360;
+}
+
+function prizeAtPointer(rotation: number) {
+  const wheelAngleAtPointer = normaliseAngle(-rotation);
+  return Math.floor(wheelAngleAtPointer / SLICE_ANGLE) % SLICES.length;
+}
+
 export function SpinWheel() {
   const { setReward } = useReward();
   const [open, setOpen] = useState(false);
@@ -46,16 +57,18 @@ export function SpinWheel() {
     setOpen(true);
   }, []);
 
-  const sliceAngle = 360 / SLICES.length;
-
   const spin = () => {
     if (spinning || result) return;
     setSpinning(true);
-    const index = Math.floor(Math.random() * SLICES.length);
-    const outcome = SLICES[index]!;
-    setAngle((current) => current + 360 * 5 + (360 - index * sliceAngle - sliceAngle / 2));
+    const selectedIndex = Math.floor(Math.random() * SLICES.length);
+    const selectedCenter = selectedIndex * SLICE_ANGLE + SLICE_ANGLE / 2;
+    const targetAngle = angle + 360 * 5 + normaliseAngle(-selectedCenter - angle);
+    setAngle(targetAngle);
 
     window.setTimeout(() => {
+      const winningIndex = prizeAtPointer(targetAngle);
+      const outcome = SLICES[winningIndex];
+      if (!outcome) return;
       setSpinning(false);
       setResult(outcome);
       setReward(outcome);
@@ -72,39 +85,43 @@ export function SpinWheel() {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="mx-auto mt-2 h-56 w-56">
+        <div className="relative mx-auto mt-4 h-64 w-64 max-w-full">
           <div
-            className="relative h-full w-full rounded-full border-4 border-gold"
+            aria-hidden="true"
+            className="absolute left-1/2 top-[-10px] z-20 h-0 w-0 -translate-x-1/2 border-x-[14px] border-t-[24px] border-x-transparent border-t-gold-deep drop-shadow-sm"
+          />
+          <div
+            className="relative h-full w-full overflow-hidden rounded-full border-4 border-gold shadow-lg"
             style={{
               transform: `rotate(${angle}deg)`,
               transition: spinning ? "transform 3.1s cubic-bezier(0.15, 0.9, 0.15, 1)" : "none",
+              background: `conic-gradient(var(--primary) 0deg ${SLICE_ANGLE}deg, var(--gold-deep) ${SLICE_ANGLE}deg ${SLICE_ANGLE * 2}deg, var(--primary) ${SLICE_ANGLE * 2}deg ${SLICE_ANGLE * 3}deg, var(--gold-deep) ${SLICE_ANGLE * 3}deg ${SLICE_ANGLE * 4}deg, var(--primary) ${SLICE_ANGLE * 4}deg ${SLICE_ANGLE * 5}deg, var(--gold-deep) ${SLICE_ANGLE * 5}deg 360deg)`,
             }}
           >
-            {SLICES.map((slice, index) => (
-              <span
-                key={slice.prize_label}
-                className="absolute left-1/2 top-1/2 w-24 -translate-y-1/2 text-center text-[11px] font-bold leading-tight text-primary-foreground"
-                style={{
-                  transform: `rotate(${index * sliceAngle + sliceAngle / 2}deg) translateX(28px)`,
-                  transformOrigin: "left center",
-                }}
-              >
-                {slice.prize_label}
-              </span>
-            ))}
-            <span
-              className="absolute inset-0 rounded-full"
-              style={{
-                background: `conic-gradient(var(--primary) 0deg ${sliceAngle}deg, var(--gold-deep) ${sliceAngle}deg ${sliceAngle * 2}deg, var(--primary) ${sliceAngle * 2}deg ${sliceAngle * 3}deg, var(--gold-deep) ${sliceAngle * 3}deg ${sliceAngle * 4}deg, var(--primary) ${sliceAngle * 4}deg ${sliceAngle * 5}deg, var(--gold-deep) ${sliceAngle * 5}deg 360deg)`,
-                zIndex: -1,
-              }}
-            />
+            {SLICES.map((slice, index) => {
+              const centerRadians = ((index * SLICE_ANGLE + SLICE_ANGLE / 2) * Math.PI) / 180;
+              return (
+                <span
+                  key={slice.prize_label}
+                  className="absolute z-10 flex w-[76px] -translate-x-1/2 -translate-y-1/2 items-center justify-center text-center text-[10px] font-extrabold leading-[1.2] text-primary-foreground"
+                  style={{
+                    left: `${50 + Math.sin(centerRadians) * 30}%`,
+                    top: `${50 - Math.cos(centerRadians) * 30}%`,
+                  }}
+                >
+                  {slice.prize_label}
+                </span>
+              );
+            })}
+            <span className="absolute left-1/2 top-1/2 z-10 h-9 w-9 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-gold bg-card" />
           </div>
         </div>
 
         {result ? (
           <div className="mt-3 rounded-md border border-gold bg-secondary p-3 text-center">
-            <p className="text-sm font-bold text-primary">{result.prize_label}</p>
+            <p className="text-sm font-bold text-primary">
+              Congratulations! You won {result.prize_label}!
+            </p>
             <p className="mt-1 text-xs text-muted-foreground">
               {result.discount_percent > 0 || result.free_delivery
                 ? `Code ${result.discount_code} applies automatically at checkout.`

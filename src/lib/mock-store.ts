@@ -16,6 +16,9 @@ export type MockOrder = {
   discount_pkr: number;
   delivery_pkr: number;
   total_pkr: number;
+  payment_method: "Easypaisa / JazzCash";
+  payment_status: "Pending Verification";
+  transaction_id: string;
   items: {
     product_name: string;
     unit_price_pkr: number;
@@ -70,16 +73,20 @@ export function buildOrder(input: {
   subtotal: number;
   discount: number;
   delivery: number;
+  transactionId: string;
 }): MockOrder {
   return {
     id: Math.random().toString(36).slice(2, 10),
     created_at: new Date().toISOString(),
-    status: "pending",
+    status: "Pending Verification",
     city: input.city,
     subtotal_pkr: input.subtotal,
     discount_pkr: input.discount,
     delivery_pkr: input.delivery,
     total_pkr: input.subtotal - input.discount + input.delivery,
+    payment_method: "Easypaisa / JazzCash",
+    payment_status: "Pending Verification",
+    transaction_id: input.transactionId,
     items: input.items.map((item) => ({
       product_name: item.name,
       unit_price_pkr: item.price,
