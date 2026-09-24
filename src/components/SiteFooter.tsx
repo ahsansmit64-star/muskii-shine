@@ -65,7 +65,10 @@ export function SiteFooter() {
         </div>
       </div>
       <div className="border-t border-border px-4 py-4 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Nail by Muskii. All rights reserved.
+        © {new Date().getFullYear()} Nail by Muskii. All rights reserved. ·{" "}
+        <a href="/terms" className="underline hover:text-gold-deep">
+          Terms and Conditions
+        </a>
       </div>
     </footer>
   );
