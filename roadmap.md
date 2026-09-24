@@ -1,0 +1,4 @@
+- [ ] Fix lucky wheel pointer, labels, winner detection, and reward application
+- [ ] Add Easypaisa/JazzCash checkout details, QR images, TRX ID, optional receipt upload
+- [ ] Save manual-payment orders as Pending Verification
+- [ ] Verify wheel and checkout flow
