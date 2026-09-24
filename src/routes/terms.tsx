@@ -82,7 +82,7 @@ const sections: { title: string; body: string[] }[] = [
     title: "8. Governing law and contact",
     body: [
       "These terms are governed by the laws of Pakistan. Any dispute will be handled by the courts of Pakistan.",
-      "Nail by Muskii is an online store based in Pakistan. For questions about an order or these terms, message us on Instagram at @nail_diaries_by_muskiii.",
+      "Nail by Muskii is an online store based in Quetta, Pakistan. For questions about an order or these terms, email naildairiesbymuskiii@gmail.com or message us on Instagram at @nail_diaries_by_muskiii.",
     ],
   },
 ];
