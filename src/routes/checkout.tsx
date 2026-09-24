@@ -7,6 +7,8 @@ import { useReward } from "@/hooks/useReward";
 import { formatPKR, DELIVERY_PKR } from "@/lib/money";
 import { buildOrder, saveOrder } from "@/lib/mock-store";
 import { cleanText, PK_PHONE_REGEX } from "@/lib/sanitize";
+import easypaisaQr from "@/assets/easypaisa-qr.jpeg.asset.json";
+import jazzcashQr from "@/assets/jazzcash-qr.jpeg.asset.json";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -48,6 +50,9 @@ function Checkout() {
     postalCode: "",
   });
   const [phone, setPhone] = useState("");
+  const [transactionId, setTransactionId] = useState("");
+  const [receiptName, setReceiptName] = useState<string | null>(null);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
   const [done, setDone] = useState<{ orderId: string; total: number } | null>(null);
 
   const percent = reward?.discount_percent ?? 0;
@@ -61,6 +66,7 @@ function Checkout() {
       subtotal,
       discount,
       delivery,
+      transactionId,
     });
     saveOrder(order);
     clear();
@@ -101,6 +107,7 @@ function Checkout() {
 
   const addressValid = FIELDS.every((field) => cleanText(address[field.key], field.max).length >= 2);
   const phoneValid = PK_PHONE_REGEX.test(phone.trim());
+  const transactionIdValid = /^\d{11}$/.test(transactionId);
 
   return (
     <main className="mx-auto max-w-xl px-4 py-12">
@@ -145,7 +152,7 @@ function Checkout() {
           className="mt-6 grid gap-4"
           onSubmit={(event) => {
             event.preventDefault();
-            if (phoneValid) placeOrder();
+            if (phoneValid && transactionIdValid) placeOrder();
           }}
         >
           <label className="block">
@@ -169,11 +176,90 @@ function Checkout() {
             ) : null}
           </label>
 
+          <section className="border-y border-border py-5">
+            <h2 className="text-lg font-bold">Easypaisa / JazzCash</h2>
+            <div className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+              <span className="text-muted-foreground">Account Title</span>
+              <strong>Syed Konain Tahir</strong>
+              <span className="text-muted-foreground">Mobile Number</span>
+              <strong>03712280570</strong>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <figure className="min-w-0">
+                <img
+                  src={easypaisaQr.url}
+                  alt="Easypaisa payment QR code for Syed Konain Tahir"
+                  className="aspect-[4/5] w-full rounded-md border border-border bg-card object-contain"
+                />
+                <figcaption className="mt-1 text-center text-xs font-bold">Easypaisa</figcaption>
+              </figure>
+              <figure className="min-w-0">
+                <img
+                  src={jazzcashQr.url}
+                  alt="JazzCash payment QR code for Syed Konain Tahir"
+                  className="aspect-[4/5] w-full rounded-md border border-border bg-card object-contain"
+                />
+                <figcaption className="mt-1 text-center text-xs font-bold">JazzCash</figcaption>
+              </figure>
+            </div>
+          </section>
+
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              11-digit Transaction ID (TRX ID)
+            </span>
+            <Input
+              className="min-h-12"
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="Enter 11 digits"
+              value={transactionId}
+              maxLength={11}
+              onChange={(event) => setTransactionId(event.target.value.replace(/\D/g, "").slice(0, 11))}
+              required
+            />
+            {transactionId.length > 0 && !transactionIdValid ? (
+              <span className="mt-1 block text-xs font-medium text-destructive">
+                Transaction ID must contain exactly 11 digits.
+              </span>
+            ) : null}
+          </label>
+
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Payment screenshot (optional)
+            </span>
+            <Input
+              className="min-h-12 cursor-pointer py-2"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (!file) {
+                  setReceiptName(null);
+                  setReceiptError(null);
+                  return;
+                }
+                if (file.size > 5 * 1024 * 1024) {
+                  setReceiptName(null);
+                  setReceiptError("Choose an image smaller than 5 MB.");
+                  event.target.value = "";
+                  return;
+                }
+                setReceiptName(file.name);
+                setReceiptError(null);
+              }}
+            />
+            {receiptName ? <span className="mt-1 block text-xs text-muted-foreground">Selected: {receiptName}</span> : null}
+            {receiptError ? <span className="mt-1 block text-xs font-medium text-destructive">{receiptError}</span> : null}
+          </label>
+
           <div className="flex gap-3">
             <Button size="touch" variant="outline" type="button" onClick={() => setStep(1)}>
               Back
             </Button>
-            <Button size="touch" type="submit" disabled={!phoneValid}>
+            <Button size="touch" type="submit" disabled={!phoneValid || !transactionIdValid}>
               Place order
             </Button>
           </div>

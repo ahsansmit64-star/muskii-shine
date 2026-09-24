@@ -57,6 +57,9 @@ function Orders() {
               <p className="mt-1 text-xs text-muted-foreground">
                 {new Date(order.created_at).toLocaleDateString("en-PK")} · {order.city}
               </p>
+              <p className="mt-2 text-xs font-semibold text-primary">
+                {order.payment_method ?? "Easypaisa / JazzCash"} · Payment: {order.payment_status ?? order.status}
+              </p>
               <ul className="mt-3 grid gap-1 text-sm">
                 {order.items.map((item, index) => (
                   <li key={`${item.product_name}-${index}`} className="flex justify-between gap-3">
