@@ -8,9 +8,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useReward } from "@/hooks/useReward";
-import { loadReward, type Reward } from "@/lib/mock-store";
+import {
+  formatCountdown,
+  spinCooldownRemaining,
+  type Reward,
+} from "@/lib/mock-store";
 
-const SLICES: Reward[] = [
+const SLICES: Omit<Reward, "spun_at">[] = [
   { prize_label: "5% Off", discount_percent: 5, free_delivery: false, discount_code: "MUSKII5" },
   { prize_label: "10% Off", discount_percent: 10, free_delivery: false, discount_code: "MUSKII10" },
   { prize_label: "15% Off", discount_percent: 15, free_delivery: false, discount_code: "MUSKII15" },
@@ -41,25 +45,34 @@ function prizeAtPointer(rotation: number) {
 }
 
 export function SpinWheel() {
-  const { setReward } = useReward();
-  const [open, setOpen] = useState(false);
+  const { reward, setReward, spinOpen, setSpinOpen } = useReward();
   const [spinning, setSpinning] = useState(false);
   const [angle, setAngle] = useState(0);
   const [result, setResult] = useState<Reward | null>(null);
+  const [remaining, setRemaining] = useState(0);
 
+  // Auto-open once on first visit when the user has never spun.
   useEffect(() => {
-    // Presentation build: the spin result is kept in local storage only.
-    const existing = loadReward();
-    if (existing) {
-      setResult(existing);
-      return;
-    }
-    setOpen(true);
+    if (!reward && !spinOpen) setSpinOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Keep the cooldown countdown ticking while the dialog is open.
+  useEffect(() => {
+    if (!spinOpen) return;
+    const tick = () => setRemaining(spinCooldownRemaining(reward));
+    tick();
+    const timer = window.setInterval(tick, 30000);
+    return () => window.clearInterval(timer);
+  }, [spinOpen, reward]);
+
+  const coolingDown = remaining > 0;
+  const activeReward = reward && (reward.discount_percent > 0 || reward.free_delivery) ? reward : null;
+
   const spin = () => {
-    if (spinning || result) return;
+    if (spinning || coolingDown) return;
     setSpinning(true);
+    setResult(null);
     const selectedIndex = Math.floor(Math.random() * SLICES.length);
     const selectedCenter = selectedIndex * SLICE_ANGLE + SLICE_ANGLE / 2;
     const targetAngle = angle + 360 * 5 + normaliseAngle(-selectedCenter - angle);
@@ -69,19 +82,21 @@ export function SpinWheel() {
       const winningIndex = prizeAtPointer(targetAngle);
       const outcome = SLICES[winningIndex];
       if (!outcome) return;
+      const won: Reward = { ...outcome, spun_at: new Date().toISOString() };
       setSpinning(false);
-      setResult(outcome);
-      setReward(outcome);
+      setResult(won);
+      setReward(won);
+      setRemaining(spinCooldownRemaining(won));
     }, 3200);
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={spinOpen} onOpenChange={setSpinOpen}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>One lucky spin</DialogTitle>
+          <DialogTitle>Lucky spin</DialogTitle>
           <DialogDescription>
-            You get a single spin. Whatever you win applies to your cart automatically.
+            One free spin every 24 hours. Whatever you win applies to your cart automatically.
           </DialogDescription>
         </DialogHeader>
 
@@ -124,11 +139,30 @@ export function SpinWheel() {
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               {result.discount_percent > 0 || result.free_delivery
-                ? `Code ${result.discount_code} applies automatically at checkout.`
-                : "No reward this time. Your spin has been used."}
+                ? `Code ${result.discount_code} is saved in My Vouchers and applies at checkout.`
+                : "No reward this time. Come back tomorrow for another spin."}
             </p>
-            <Button size="touch" className="mt-3 w-full" onClick={() => setOpen(false)}>
+            <Button size="touch" className="mt-3 w-full" onClick={() => setSpinOpen(false)}>
               Start shopping
+            </Button>
+          </div>
+        ) : coolingDown ? (
+          <div className="mt-3 rounded-md border border-border bg-secondary p-3 text-center">
+            <p className="text-sm font-bold text-primary">
+              Next free spin in: {formatCountdown(remaining)}
+            </p>
+            {activeReward ? (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Your active reward: {activeReward.prize_label}
+                {activeReward.discount_code ? ` (code ${activeReward.discount_code})` : ""}.
+              </p>
+            ) : (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Your last spin won no reward. The wheel unlocks again when the timer ends.
+              </p>
+            )}
+            <Button size="touch" variant="outline" className="mt-3 w-full" onClick={() => setSpinOpen(false)}>
+              Close
             </Button>
           </div>
         ) : (
