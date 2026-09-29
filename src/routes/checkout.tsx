@@ -79,8 +79,8 @@ function Checkout() {
       <main className="mx-auto max-w-md px-4 py-16 text-center">
         <h1 className="text-2xl font-bold">Order placed</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Order #{done.orderId.slice(0, 8)} · {formatPKR(done.total)}. We will message you on the
-          number you gave us to confirm the details.
+          Order #{done.orderId.slice(0, 8)} · {formatPKR(done.total)}. Your payment is pending
+          verification. We will message you on the number you gave us after checking the payment.
         </p>
         <div className="mt-6 flex justify-center gap-3">
           <Button size="touch" onClick={() => void navigate({ to: "/orders" })}>
