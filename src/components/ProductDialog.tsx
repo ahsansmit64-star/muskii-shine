@@ -12,11 +12,13 @@ function OptionRow({
   options,
   value,
   onChange,
+  disabledOptions = [],
 }: {
   label: string;
   options: readonly string[];
   value: string;
   onChange: (next: string) => void;
+  disabledOptions?: readonly string[];
 }) {
   return (
     <div>
