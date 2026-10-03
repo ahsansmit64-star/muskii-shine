@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,10 +54,18 @@ function Checkout() {
   const [receiptName, setReceiptName] = useState<string | null>(null);
   const [receiptError, setReceiptError] = useState<string | null>(null);
   const [done, setDone] = useState<{ orderId: string; total: number } | null>(null);
+  const [vouchers, setVouchers] = useState<Voucher[]>([]);
+  const [selectedVoucher, setSelectedVoucher] = useState<string>("");
 
-  const percent = reward?.discount_percent ?? 0;
+  useEffect(() => {
+    setVouchers(loadVouchers().filter((v) => !v.used));
+  }, []);
+
+  const voucher = vouchers.find((v) => v.code === selectedVoucher) ?? null;
+  const percent = voucher ? voucher.discount_percent : (reward?.discount_percent ?? 0);
+  const freeDelivery = voucher ? voucher.free_delivery : (reward?.free_delivery ?? false);
   const discount = Math.round((subtotal * percent) / 100);
-  const delivery = reward?.free_delivery ? 0 : DELIVERY_PKR;
+  const delivery = freeDelivery ? 0 : DELIVERY_PKR;
 
   const placeOrder = () => {
     const order = buildOrder({
@@ -67,10 +75,12 @@ function Checkout() {
       discount,
       delivery,
       transactionId,
+      voucherCode: voucher?.code ?? null,
     });
     saveOrder(order);
+    if (voucher) markVoucherUsed(voucher.code);
     clear();
-    if (percent > 0 || reward?.free_delivery) clearReward();
+    if (percent > 0 || freeDelivery) clearReward();
     setDone({ orderId: order.id, total: order.total_pkr });
   };
 
@@ -115,8 +125,29 @@ function Checkout() {
       <p className="mt-1 text-sm text-muted-foreground">
         Step {step} of 2 · items subtotal {formatPKR(subtotal)} · delivery{" "}
         {delivery === 0 ? "free" : formatPKR(delivery)}
-        {percent > 0 ? ` · ${percent}% spin discount applied` : ""}.
+        {percent > 0 ? ` · ${percent}% discount applied` : ""}
+        {freeDelivery ? " · free delivery applied" : ""}.
       </p>
+
+      {vouchers.length > 0 ? (
+        <label className="mt-4 block">
+          <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Select voucher
+          </span>
+          <select
+            className="min-h-12 w-full rounded-md border border-border bg-background px-3 text-sm"
+            value={selectedVoucher}
+            onChange={(event) => setSelectedVoucher(event.target.value)}
+          >
+            <option value="">No voucher</option>
+            {vouchers.map((v) => (
+              <option key={v.code} value={v.code}>
+                {v.code} — {v.prize_label}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
 
       {step === 1 ? (
         <form
