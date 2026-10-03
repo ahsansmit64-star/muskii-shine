@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useCart } from "@/hooks/useCart";
 import { useReward } from "@/hooks/useReward";
 import { formatPKR, DELIVERY_PKR } from "@/lib/money";
-import { buildOrder, saveOrder } from "@/lib/mock-store";
+import { buildOrder, loadVouchers, markVoucherUsed, saveOrder, type Voucher } from "@/lib/mock-store";
 import { cleanText, PK_PHONE_REGEX } from "@/lib/sanitize";
 import easypaisaQr from "@/assets/easypaisa-qr.jpeg.asset.json";
 import jazzcashQr from "@/assets/jazzcash-qr.jpeg.asset.json";
