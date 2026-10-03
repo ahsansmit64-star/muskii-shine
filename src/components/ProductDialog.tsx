@@ -6,6 +6,7 @@ import { useCart } from "@/hooks/useCart";
 import { formatPKR } from "@/lib/money";
 import { cleanText } from "@/lib/sanitize";
 import { SIZES, SHAPES, FINISHES, type Product } from "@/lib/shop-types";
+import { getInventory } from "@/lib/mock-store";
 
 function OptionRow({
   label,
@@ -26,21 +27,28 @@ function OptionRow({
         {label}
       </p>
       <div className="flex flex-wrap gap-2">
-        {options.map((option) => (
-          <button
-            key={option}
-            type="button"
-            onClick={() => onChange(option)}
-            aria-pressed={value === option}
-            className={`min-h-12 rounded-md border px-4 text-sm font-semibold ${
-              value === option
-                ? "border-gold-deep bg-gold text-accent-foreground"
-                : "border-border bg-card text-foreground hover:bg-secondary"
-            }`}
-          >
-            {option}
-          </button>
-        ))}
+        {options.map((option) => {
+          const disabled = disabledOptions.includes(option);
+          return (
+            <button
+              key={option}
+              type="button"
+              disabled={disabled}
+              onClick={() => onChange(option)}
+              aria-pressed={value === option}
+              className={`min-h-12 rounded-md border px-4 text-sm font-semibold ${
+                disabled
+                  ? "cursor-not-allowed border-border bg-secondary text-muted-foreground line-through"
+                  : value === option
+                    ? "border-gold-deep bg-gold text-accent-foreground"
+                    : "border-border bg-card text-foreground hover:bg-secondary"
+              }`}
+            >
+              {option}
+              {disabled ? " — Out of Stock" : ""}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -65,6 +73,10 @@ export function ProductDialog({
 
   if (!product) return null;
 
+  const inventory = getInventory(product.id);
+  const oosSizes = inventory.oosSizes;
+  const effectiveSize = oosSizes.includes(size) ? (SIZES.find((s) => !oosSizes.includes(s)) ?? "M") : size;
+
   return (
     <Dialog open={Boolean(product)} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] max-w-lg overflow-y-auto">
@@ -85,8 +97,8 @@ export function ProductDialog({
         <p className="text-lg font-bold text-gold-deep">{formatPKR(product.price_pkr)}</p>
 
         <div className="grid gap-4">
-          <OptionRow label="Size" options={SIZES} value={size} onChange={setSize} />
-          {size === "Custom" ? (
+          <OptionRow label="Size" options={SIZES} value={effectiveSize} onChange={setSize} disabledOptions={oosSizes} />
+          {effectiveSize === "Custom" ? (
             <label className="block">
               <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Measurements in mm (thumb to pinky)
@@ -108,7 +120,7 @@ export function ProductDialog({
         <Button
           size="touch"
           className="w-full"
-          disabled={size === "Custom" && cleanText(customMm, 60).length < 3}
+          disabled={effectiveSize === "Custom" && cleanText(customMm, 60).length < 3}
           onClick={() => {
             add({
               productId: product.id,
@@ -117,8 +129,8 @@ export function ProductDialog({
               image: product.image_url,
               price: product.price_pkr,
               quantity: 1,
-              size,
-              customMm: size === "Custom" ? cleanText(customMm, 60) : null,
+              size: effectiveSize,
+              customMm: effectiveSize === "Custom" ? cleanText(customMm, 60) : null,
               shape,
               finish,
             });
