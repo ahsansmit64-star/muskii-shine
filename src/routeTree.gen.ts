@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as AdminCustomizeRouteImport } from './routes/admin.customize'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,18 +35,25 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminCustomizeRoute = AdminCustomizeRouteImport.update({
+  id: '/admin/customize',
+  path: '/admin/customize',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/checkout': typeof CheckoutRoute
   '/orders': typeof OrdersRoute
   '/terms': typeof TermsRoute
+  '/admin/customize': typeof AdminCustomizeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/checkout': typeof CheckoutRoute
   '/orders': typeof OrdersRoute
   '/terms': typeof TermsRoute
+  '/admin/customize': typeof AdminCustomizeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +61,14 @@ export interface FileRoutesById {
   '/checkout': typeof CheckoutRoute
   '/orders': typeof OrdersRoute
   '/terms': typeof TermsRoute
+  '/admin/customize': typeof AdminCustomizeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/checkout' | '/orders' | '/terms'
+  fullPaths: '/' | '/checkout' | '/orders' | '/terms' | '/admin/customize'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/checkout' | '/orders' | '/terms'
-  id: '__root__' | '/' | '/checkout' | '/orders' | '/terms'
+  to: '/' | '/checkout' | '/orders' | '/terms' | '/admin/customize'
+  id: '__root__' | '/' | '/checkout' | '/orders' | '/terms' | '/admin/customize'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,6 +76,7 @@ export interface RootRouteChildren {
   CheckoutRoute: typeof CheckoutRoute
   OrdersRoute: typeof OrdersRoute
   TermsRoute: typeof TermsRoute
+  AdminCustomizeRoute: typeof AdminCustomizeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -99,6 +109,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/customize': {
+      id: '/admin/customize'
+      path: '/admin/customize'
+      fullPath: '/admin/customize'
+      preLoaderRoute: typeof AdminCustomizeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -107,6 +124,7 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutRoute: CheckoutRoute,
   OrdersRoute: OrdersRoute,
   TermsRoute: TermsRoute,
+  AdminCustomizeRoute: AdminCustomizeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
