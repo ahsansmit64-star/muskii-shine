@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Instagram } from "lucide-react";
 import { RippleBackground } from "@/components/RippleBackground";
 import { ProductDialog } from "@/components/ProductDialog";
 import { Button } from "@/components/ui/button";
 import { MOCK_PRODUCTS, suggestFor } from "@/lib/mock-catalog";
+import { CATALOG_CHANGED_EVENT, isProductInStock, loadCustomProducts } from "@/lib/mock-store";
 import { formatPKR } from "@/lib/money";
 import type { Product } from "@/lib/shop-types";
 
@@ -30,8 +31,21 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const products = MOCK_PRODUCTS;
+  const [customProducts, setCustomProducts] = useState<Product[]>([]);
+  const [stockVersion, setStockVersion] = useState(0);
   const [selected, setSelected] = useState<Product | null>(null);
+
+  useEffect(() => {
+    const refresh = () => {
+      setCustomProducts(loadCustomProducts());
+      setStockVersion((v) => v + 1);
+    };
+    refresh();
+    window.addEventListener(CATALOG_CHANGED_EVENT, refresh);
+    return () => window.removeEventListener(CATALOG_CHANGED_EVENT, refresh);
+  }, []);
+
+  const products = [...customProducts, ...MOCK_PRODUCTS];
   const suggestions = selected ? suggestFor(selected, 3) : [];
 
   return (
@@ -71,32 +85,45 @@ function Home() {
           {products.length} designs available. Tap a set to customise it.
         </p>
 
-        <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {products.map((product, index) => (
-            <li key={product.id}>
-              <button
-                type="button"
-                onClick={() => setSelected(product)}
-                className="group block w-full rounded-lg border border-border bg-card p-3 text-left transition-colors hover:border-gold-deep"
-              >
-                <img
-                  src={product.image_url}
-                  alt={`${product.name} press-on nail set`}
-                  width={1024}
-                  height={1024}
-                  loading={index < 3 ? "eager" : "lazy"}
-                  className="aspect-square w-full rounded-md object-cover no-select"
-                />
-                <h3 className="mt-3 text-base font-semibold">{product.name}</h3>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {product.shape} · {product.finish}
-                </p>
-                <p className="mt-2 text-sm font-bold text-gold-deep">
-                  {formatPKR(product.price_pkr)}
-                </p>
-              </button>
-            </li>
-          ))}
+        <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3" data-stock-version={stockVersion}>
+          {products.map((product, index) => {
+            const inStock = isProductInStock(product.id);
+            return (
+              <li key={product.id}>
+                <button
+                  type="button"
+                  onClick={() => inStock && setSelected(product)}
+                  disabled={!inStock}
+                  className="group block w-full rounded-lg border border-border bg-card p-3 text-left transition-colors hover:border-gold-deep disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  <div className="relative">
+                    <img
+                      src={product.image_url}
+                      alt={`${product.name} press-on nail set`}
+                      width={1024}
+                      height={1024}
+                      loading={index < 3 ? "eager" : "lazy"}
+                      className="aspect-square w-full rounded-md object-cover no-select"
+                    />
+                    <span
+                      className={`absolute left-2 top-2 rounded-md px-2 py-0.5 text-xs font-bold ${
+                        inStock ? "bg-gold text-accent-foreground" : "bg-destructive text-destructive-foreground"
+                      }`}
+                    >
+                      {inStock ? "In Stock" : "Out of Stock"}
+                    </span>
+                  </div>
+                  <h3 className="mt-3 text-base font-semibold">{product.name}</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {product.shape} · {product.finish}
+                  </p>
+                  <p className="mt-2 text-sm font-bold text-gold-deep">
+                    {formatPKR(product.price_pkr)}
+                  </p>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       </section>
 

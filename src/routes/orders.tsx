@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { formatPKR } from "@/lib/money";
-import { loadOrders, type MockOrder } from "@/lib/mock-store";
+import { loadOrders, loadVouchers, type MockOrder, type Voucher } from "@/lib/mock-store";
 
 export const Route = createFileRoute("/orders")({
   head: () => ({
@@ -22,19 +22,77 @@ export const Route = createFileRoute("/orders")({
 
 function Orders() {
   const [orders, setOrders] = useState<MockOrder[] | null>(null);
+  const [vouchers, setVouchers] = useState<Voucher[]>([]);
+  const [tab, setTab] = useState<"orders" | "vouchers">("orders");
 
   useEffect(() => {
     setOrders(loadOrders());
+    setVouchers(loadVouchers());
   }, []);
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-12">
-      <h1 className="text-2xl font-bold">My orders</h1>
+      <h1 className="text-2xl font-bold">My account</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Orders placed in this demo are kept in your browser.
+        Orders and vouchers in this demo are kept in your browser.
       </p>
 
-      {orders === null ? (
+      <div className="mt-5 flex gap-2" role="tablist" aria-label="Account sections">
+        {(
+          [
+            { key: "orders", label: "My Orders" },
+            { key: "vouchers", label: "My Vouchers" },
+          ] as const
+        ).map((item) => (
+          <button
+            key={item.key}
+            role="tab"
+            aria-selected={tab === item.key}
+            onClick={() => setTab(item.key)}
+            className={`min-h-12 rounded-md border px-4 text-sm font-semibold ${
+              tab === item.key
+                ? "border-gold-deep bg-gold text-accent-foreground"
+                : "border-border bg-card hover:bg-secondary"
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "vouchers" ? (
+        vouchers.length === 0 ? (
+          <p className="mt-6 text-sm text-muted-foreground">
+            No vouchers yet. Spin the Lucky Spin wheel to win discount codes.
+          </p>
+        ) : (
+          <ul className="mt-6 grid gap-3">
+            {vouchers.map((voucher) => (
+              <li
+                key={voucher.code}
+                className={`rounded-lg border p-4 ${
+                  voucher.used ? "border-border bg-secondary opacity-60" : "border-gold bg-card"
+                }`}
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <p className="font-mono text-base font-bold tracking-wide">{voucher.code}</p>
+                  <span
+                    className={`rounded-md px-2 py-0.5 text-xs font-semibold uppercase tracking-wide ${
+                      voucher.used ? "bg-muted text-muted-foreground" : "bg-gold text-accent-foreground"
+                    }`}
+                  >
+                    {voucher.used ? "Used" : "Active"}
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {voucher.prize_label} · won{" "}
+                  {new Date(voucher.won_at).toLocaleDateString("en-PK")}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )
+      ) : orders === null ? (
         <p className="mt-4 text-sm text-muted-foreground">Loading your orders…</p>
       ) : orders.length === 0 ? (
         <p className="mt-4 text-sm text-muted-foreground">
@@ -60,6 +118,11 @@ function Orders() {
               <p className="mt-2 text-xs font-semibold text-primary">
                 {order.payment_method ?? "Easypaisa / JazzCash"} · Payment: {order.payment_status ?? order.status}
               </p>
+              {order.voucher_code ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Voucher applied: {order.voucher_code}
+                </p>
+              ) : null}
               <ul className="mt-3 grid gap-1 text-sm">
                 {order.items.map((item, index) => (
                   <li key={`${item.product_name}-${index}`} className="flex justify-between gap-3">
