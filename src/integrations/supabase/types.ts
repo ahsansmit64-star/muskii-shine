@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      custom_products: {
+        Row: {
+          colors: string[]
+          created_at: string
+          description: string
+          finish: string
+          id: string
+          image_urls: string[]
+          name: string
+          price_pkr: number
+          shape: string
+          sizes: string[]
+        }
+        Insert: {
+          colors?: string[]
+          created_at?: string
+          description?: string
+          finish?: string
+          id?: string
+          image_urls?: string[]
+          name: string
+          price_pkr: number
+          shape?: string
+          sizes?: string[]
+        }
+        Update: {
+          colors?: string[]
+          created_at?: string
+          description?: string
+          finish?: string
+          id?: string
+          image_urls?: string[]
+          name?: string
+          price_pkr?: number
+          shape?: string
+          sizes?: string[]
+        }
+        Relationships: []
+      }
+      customer_bans: {
+        Row: {
+          banned_at: string
+          user_id: string
+        }
+        Insert: {
+          banned_at?: string
+          user_id: string
+        }
+        Update: {
+          banned_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           custom_mm: string | null
@@ -122,6 +176,30 @@ export type Database = {
         }
         Relationships: []
       }
+      product_inventory: {
+        Row: {
+          oos_colors: string[]
+          oos_sizes: string[]
+          product_ref: string
+          stock: number | null
+          updated_at: string
+        }
+        Insert: {
+          oos_colors?: string[]
+          oos_sizes?: string[]
+          product_ref: string
+          stock?: number | null
+          updated_at?: string
+        }
+        Update: {
+          oos_colors?: string[]
+          oos_sizes?: string[]
+          product_ref?: string
+          stock?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           created_at: string
@@ -169,31 +247,130 @@ export type Database = {
           created_at: string
           discount_code: string | null
           discount_percent: number
+          email: string | null
           free_delivery: boolean
           full_name: string | null
           id: string
+          last_seen_at: string | null
           phone: string | null
+          signed_in: boolean
           updated_at: string
+          username: string | null
         }
         Insert: {
           created_at?: string
           discount_code?: string | null
           discount_percent?: number
+          email?: string | null
           free_delivery?: boolean
           full_name?: string | null
           id: string
+          last_seen_at?: string | null
           phone?: string | null
+          signed_in?: boolean
           updated_at?: string
+          username?: string | null
         }
         Update: {
           created_at?: string
           discount_code?: string | null
           discount_percent?: number
+          email?: string | null
           free_delivery?: boolean
           full_name?: string | null
           id?: string
+          last_seen_at?: string | null
           phone?: string | null
+          signed_in?: boolean
           updated_at?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      shop_orders: {
+        Row: {
+          area: string
+          city: string
+          created_at: string
+          delivery_pkr: number
+          discount_pkr: number
+          email: string | null
+          full_name: string
+          id: string
+          items: Json
+          payment_method: string
+          payment_status: string
+          phone: string
+          postal_code: string
+          status: string
+          street: string
+          subtotal_pkr: number
+          total_pkr: number
+          transaction_id: string
+          user_id: string
+          voucher_code: string | null
+        }
+        Insert: {
+          area: string
+          city: string
+          created_at?: string
+          delivery_pkr?: number
+          discount_pkr?: number
+          email?: string | null
+          full_name: string
+          id?: string
+          items?: Json
+          payment_method?: string
+          payment_status?: string
+          phone: string
+          postal_code: string
+          status?: string
+          street: string
+          subtotal_pkr: number
+          total_pkr: number
+          transaction_id: string
+          user_id: string
+          voucher_code?: string | null
+        }
+        Update: {
+          area?: string
+          city?: string
+          created_at?: string
+          delivery_pkr?: number
+          discount_pkr?: number
+          email?: string | null
+          full_name?: string
+          id?: string
+          items?: Json
+          payment_method?: string
+          payment_status?: string
+          phone?: string
+          postal_code?: string
+          status?: string
+          street?: string
+          subtotal_pkr?: number
+          total_pkr?: number
+          transaction_id?: string
+          user_id?: string
+          voucher_code?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
         }
         Relationships: []
       }
@@ -224,11 +401,61 @@ export type Database = {
         }
         Relationships: []
       }
+      user_vouchers: {
+        Row: {
+          code: string
+          discount_percent: number
+          free_delivery: boolean
+          id: string
+          prize_label: string
+          used: boolean
+          user_id: string
+          won_at: string
+        }
+        Insert: {
+          code: string
+          discount_percent?: number
+          free_delivery?: boolean
+          id?: string
+          prize_label: string
+          used?: boolean
+          user_id: string
+          won_at?: string
+        }
+        Update: {
+          code?: string
+          discount_percent?: number
+          free_delivery?: boolean
+          id?: string
+          prize_label?: string
+          used?: boolean
+          user_id?: string
+          won_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      get_stock_status: {
+        Args: never
+        Returns: {
+          in_stock: boolean
+          oos_colors: string[]
+          oos_sizes: string[]
+          product_ref: string
+        }[]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_banned: { Args: { _user_id: string }; Returns: boolean }
       perform_spin: {
         Args: never
         Returns: {
@@ -238,9 +465,20 @@ export type Database = {
           prize_label: string
         }[]
       }
+      spin_wheel: {
+        Args: never
+        Returns: {
+          cooling_down: boolean
+          discount_code: string
+          discount_percent: number
+          free_delivery: boolean
+          prize_label: string
+          spun_at: string
+        }[]
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -367,6 +605,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const
