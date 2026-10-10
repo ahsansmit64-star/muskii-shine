@@ -30,7 +30,7 @@ export function SiteHeader() {
 
           {isAdmin ? (
             <Link
-              to="/admin/customize"
+              to="/"
               className="inline-flex min-h-12 items-center gap-1.5 rounded-md px-3 text-sm font-medium text-gold-deep hover:bg-secondary"
             >
               <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />

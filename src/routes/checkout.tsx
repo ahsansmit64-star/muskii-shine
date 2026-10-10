@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,9 @@ import { Input } from "@/components/ui/input";
 import { useCart } from "@/hooks/useCart";
 import { useReward } from "@/hooks/useReward";
 import { formatPKR, DELIVERY_PKR } from "@/lib/money";
-import { buildOrder, loadVouchers, markVoucherUsed, saveOrder, type Voucher } from "@/lib/mock-store";
+import type { Voucher } from "@/lib/mock-store";
+import { placeShopOrder } from "@/lib/shop.functions";
+import { useServerFn } from "@tanstack/react-start";
 import { cleanText, PK_PHONE_REGEX } from "@/lib/sanitize";
 import easypaisaQr from "@/assets/easypaisa-qr.jpeg.asset.json";
 import jazzcashQr from "@/assets/jazzcash-qr.jpeg.asset.json";
@@ -39,7 +42,8 @@ type AddressKey = (typeof FIELDS)[number]["key"];
 
 function Checkout() {
   const { items, subtotal, clear } = useCart();
-  const { reward, clearReward } = useReward();
+  const { reward, clearReward, vouchers: allVouchers } = useReward();
+  const submitOrder = useServerFn(placeShopOrder);
   const navigate = useNavigate();
   const [step, setStep] = useState<1 | 2>(1);
   const [address, setAddress] = useState<Record<AddressKey, string>>({
@@ -54,34 +58,43 @@ function Checkout() {
   const [receiptName, setReceiptName] = useState<string | null>(null);
   const [receiptError, setReceiptError] = useState<string | null>(null);
   const [done, setDone] = useState<{ orderId: string; total: number } | null>(null);
-  const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [selectedVoucher, setSelectedVoucher] = useState<string>("");
 
+  const vouchers: Voucher[] = allVouchers.filter((v) => !v.used);
   useEffect(() => {
-    setVouchers(loadVouchers().filter((v) => !v.used));
-  }, []);
+    if (!selectedVoucher && reward?.discount_code) setSelectedVoucher(reward.discount_code);
+  }, [reward, selectedVoucher]);
 
   const voucher = vouchers.find((v) => v.code === selectedVoucher) ?? null;
-  const percent = voucher ? voucher.discount_percent : (reward?.discount_percent ?? 0);
-  const freeDelivery = voucher ? voucher.free_delivery : (reward?.free_delivery ?? false);
+  const percent = voucher ? voucher.discount_percent : 0;
+  const freeDelivery = voucher ? voucher.free_delivery : false;
   const discount = Math.round((subtotal * percent) / 100);
   const delivery = freeDelivery ? 0 : DELIVERY_PKR;
 
-  const placeOrder = () => {
-    const order = buildOrder({
-      city: cleanText(address.city, 80),
-      items,
-      subtotal,
-      discount,
-      delivery,
-      transactionId,
-      voucherCode: voucher?.code ?? null,
-    });
-    saveOrder(order);
-    if (voucher) markVoucherUsed(voucher.code);
-    clear();
-    if (percent > 0 || freeDelivery) clearReward();
-    setDone({ orderId: order.id, total: order.total_pkr });
+  const placeOrder = async () => {
+    try {
+      const order = await submitOrder({
+        data: {
+          address,
+          phone,
+          transactionId,
+          voucherCode: voucher?.code ?? null,
+          items: items.map((i) => ({
+            productId: i.productId,
+            quantity: i.quantity,
+            size: i.size,
+            customMm: i.customMm,
+            shape: i.shape,
+            finish: i.finish,
+          })),
+        },
+      });
+      clear();
+      clearReward();
+      setDone({ orderId: order.id, total: order.total });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not place your order.");
+    }
   };
 
   if (done) {
