@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Dices, SlidersHorizontal, ShoppingBag } from "lucide-react";
+import { Dices, LogIn, LogOut, SlidersHorizontal, ShoppingBag } from "lucide-react";
 import { HeaderLogo } from "@/components/brand/HeaderLogo";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/hooks/useCart";
@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 export function SiteHeader() {
   const { count, setOpen } = useCart();
   const { setSpinOpen } = useReward();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isLoggedIn, signOut } = useAuth();
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background">
@@ -30,11 +30,11 @@ export function SiteHeader() {
 
           {isAdmin ? (
             <Link
-              to="/"
+              to="/admin"
               className="inline-flex min-h-12 items-center gap-1.5 rounded-md px-3 text-sm font-medium text-gold-deep hover:bg-secondary"
             >
               <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
-              <span className="hidden sm:inline">Customize</span>
+              <span className="hidden sm:inline">Admin Panel</span>
             </Link>
           ) : null}
 
@@ -44,6 +44,25 @@ export function SiteHeader() {
           >
             My orders
           </Link>
+
+          {isLoggedIn ? (
+            <button
+              type="button"
+              onClick={() => void signOut()}
+              className="inline-flex min-h-12 items-center gap-1.5 rounded-md px-3 text-sm font-medium hover:bg-secondary"
+            >
+              <LogOut className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden sm:inline">Sign out</span>
+            </button>
+          ) : (
+            <Link
+              to="/auth"
+              className="inline-flex min-h-12 items-center gap-1.5 rounded-md px-3 text-sm font-medium hover:bg-secondary"
+            >
+              <LogIn className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden sm:inline">Sign in</span>
+            </Link>
+          )}
 
           <Button
             size="icon-touch"
