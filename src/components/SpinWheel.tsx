@@ -8,6 +8,10 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useReward } from "@/hooks/useReward";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { Link } from "@tanstack/react-router";
+import { toast } from "sonner";
 import {
   formatCountdown,
   spinCooldownRemaining,
@@ -45,7 +49,8 @@ function prizeAtPointer(rotation: number) {
 }
 
 export function SpinWheel() {
-  const { reward, setReward, spinOpen, setSpinOpen } = useReward();
+  const { reward, setReward, spinOpen, setSpinOpen, refresh } = useReward();
+  const { isLoggedIn } = useAuth();
   const [spinning, setSpinning] = useState(false);
   const [angle, setAngle] = useState(0);
   const [result, setResult] = useState<Reward | null>(null);
@@ -53,9 +58,12 @@ export function SpinWheel() {
 
   // Auto-open once on first visit when the user has never spun.
   useEffect(() => {
-    if (!reward && !spinOpen) setSpinOpen(true);
+    if (isLoggedIn && !reward && !spinOpen && !sessionStorage.getItem("muskii-spin-shown")) {
+      sessionStorage.setItem("muskii-spin-shown", "1");
+      setSpinOpen(true);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isLoggedIn]);
 
   // Keep the cooldown countdown ticking while the dialog is open.
   useEffect(() => {
@@ -69,20 +77,35 @@ export function SpinWheel() {
   const coolingDown = remaining > 0;
   const activeReward = reward && (reward.discount_percent > 0 || reward.free_delivery) ? reward : null;
 
-  const spin = () => {
+  const spin = async () => {
     if (spinning || coolingDown) return;
     setSpinning(true);
     setResult(null);
-    const selectedIndex = Math.floor(Math.random() * SLICES.length);
+    const { data, error } = await supabase.rpc("spin_wheel");
+    const row = data?.[0];
+    if (error || !row) {
+      setSpinning(false);
+      toast.error(error?.message === "Account banned" ? "Your account is banned." : "Could not spin right now.");
+      return;
+    }
+    if (row.cooling_down) {
+      setSpinning(false);
+      await refresh();
+      return;
+    }
+    const selectedIndex = Math.max(0, SLICES.findIndex((s) => s.prize_label === row.prize_label));
     const selectedCenter = selectedIndex * SLICE_ANGLE + SLICE_ANGLE / 2;
     const targetAngle = angle + 360 * 5 + normaliseAngle(-selectedCenter - angle);
     setAngle(targetAngle);
 
     window.setTimeout(() => {
-      const winningIndex = prizeAtPointer(targetAngle);
-      const outcome = SLICES[winningIndex];
-      if (!outcome) return;
-      const won: Reward = { ...outcome, spun_at: new Date().toISOString() };
+      const won: Reward = {
+        prize_label: row.prize_label,
+        discount_percent: row.discount_percent,
+        free_delivery: row.free_delivery,
+        discount_code: row.discount_code,
+        spun_at: row.spun_at,
+      };
       setSpinning(false);
       setResult(won);
       setReward(won);
@@ -96,7 +119,7 @@ export function SpinWheel() {
         <DialogHeader>
           <DialogTitle>Lucky spin</DialogTitle>
           <DialogDescription>
-            One free spin every 24 hours. Whatever you win applies to your cart automatically.
+            One free spin every 15 days. Whatever you win applies to your cart automatically.
           </DialogDescription>
         </DialogHeader>
 
@@ -140,7 +163,7 @@ export function SpinWheel() {
             <p className="mt-1 text-xs text-muted-foreground">
               {result.discount_percent > 0 || result.free_delivery
                 ? `Code ${result.discount_code} is saved in My Vouchers and applies at checkout.`
-                : "No reward this time. Come back tomorrow for another spin."}
+                : "No reward this time. Try again when your next spin unlocks."}
             </p>
             <Button size="touch" className="mt-3 w-full" onClick={() => setSpinOpen(false)}>
               Start shopping
@@ -165,12 +188,18 @@ export function SpinWheel() {
               Close
             </Button>
           </div>
+        ) : !isLoggedIn ? (
+          <Button asChild size="touch" variant="gold" className="mt-3 w-full">
+            <Link to="/auth" onClick={() => setSpinOpen(false)}>
+              Sign in to spin
+            </Link>
+          </Button>
         ) : (
           <Button
             size="touch"
             variant="gold"
             className="mt-3 w-full"
-            onClick={spin}
+            onClick={() => void spin()}
             disabled={spinning}
           >
             {spinning ? "Spinning…" : "Spin the wheel"}

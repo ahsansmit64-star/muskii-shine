@@ -8,6 +8,7 @@ import { useReward } from "@/hooks/useReward";
 import { formatPKR, DELIVERY_PKR } from "@/lib/money";
 import type { Voucher } from "@/lib/mock-store";
 import { placeShopOrder } from "@/lib/shop.functions";
+import { useAuth } from "@/hooks/useAuth";
 import { useServerFn } from "@tanstack/react-start";
 import { cleanText, PK_PHONE_REGEX } from "@/lib/sanitize";
 import easypaisaQr from "@/assets/easypaisa-qr.jpeg.asset.json";
@@ -44,6 +45,7 @@ function Checkout() {
   const { items, subtotal, clear } = useCart();
   const { reward, clearReward, vouchers: allVouchers } = useReward();
   const submitOrder = useServerFn(placeShopOrder);
+  const { isLoggedIn, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState<1 | 2>(1);
   const [address, setAddress] = useState<Record<AddressKey, string>>({
@@ -113,6 +115,18 @@ function Checkout() {
             Keep shopping
           </Button>
         </div>
+      </main>
+    );
+  }
+
+  if (!authLoading && !isLoggedIn) {
+    return (
+      <main className="mx-auto max-w-md px-4 py-16 text-center">
+        <h1 className="text-2xl font-bold">Sign in to check out</h1>
+        <p className="mt-2 text-sm text-muted-foreground">You need an account to place an order.</p>
+        <Button size="touch" className="mt-6" onClick={() => void navigate({ to: "/auth" })}>
+          Sign in
+        </Button>
       </main>
     );
   }
