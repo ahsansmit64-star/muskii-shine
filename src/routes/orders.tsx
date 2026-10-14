@@ -1,7 +1,29 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { formatPKR } from "@/lib/money";
-import { loadOrders, loadVouchers, type MockOrder, type Voucher } from "@/lib/mock-store";
+import type { Voucher } from "@/lib/mock-store";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+
+type OrderItem = {
+  product_name: string;
+  size: string;
+  shape: string;
+  finish: string;
+  quantity: number;
+  unit_price_pkr: number;
+};
+type MockOrder = {
+  id: string;
+  created_at: string;
+  city: string;
+  status: string;
+  payment_method: string;
+  payment_status: string;
+  voucher_code: string | null;
+  total_pkr: number;
+  items: OrderItem[];
+};
 
 export const Route = createFileRoute("/orders")({
   head: () => ({
@@ -25,16 +47,32 @@ function Orders() {
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [tab, setTab] = useState<"orders" | "vouchers">("orders");
 
+  const { user, loading } = useAuth();
+
   useEffect(() => {
-    setOrders(loadOrders());
-    setVouchers(loadVouchers());
-  }, []);
+    if (loading) return;
+    if (!user) {
+      setOrders([]);
+      setVouchers([]);
+      return;
+    }
+    void (async () => {
+      const [{ data: o }, { data: v }] = await Promise.all([
+        supabase.from("shop_orders").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("user_vouchers").select("*").eq("user_id", user.id).order("won_at", { ascending: false }),
+      ]);
+      setOrders(
+        (o ?? []).map((r) => ({ ...r, items: (Array.isArray(r.items) ? r.items : []) as unknown as OrderItem[] })),
+      );
+      setVouchers((v ?? []) as Voucher[]);
+    })();
+  }, [user, loading]);
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-12">
       <h1 className="text-2xl font-bold">My account</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Orders and vouchers in this demo are kept in your browser.
+        Your orders and vouchers.
       </p>
 
       <div className="mt-5 flex gap-2" role="tablist" aria-label="Account sections">

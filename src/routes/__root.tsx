@@ -13,6 +13,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CartProvider } from "@/hooks/useCart";
+import { AuthProvider } from "@/hooks/useAuth";
 import { RewardProvider } from "@/hooks/useReward";
 import { CartDrawer } from "@/components/CartDrawer";
 import { SpinWheel } from "@/components/SpinWheel";
@@ -137,6 +138,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <AuthProvider>
       <RewardProvider>
         <CartProvider>
         <div className="flex min-h-screen flex-col">
@@ -152,6 +154,7 @@ function RootComponent() {
         <Toaster />
         </CartProvider>
       </RewardProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
