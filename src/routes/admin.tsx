@@ -309,6 +309,7 @@ function Inventory() {
 type OrderRow = {
   id: string; full_name: string; email: string | null; phone: string; street: string; area: string; city: string;
   postal_code: string; total_pkr: number; transaction_id: string; payment_status: string; status: string;
+  payment_method: string; sender_name: string | null; sender_account: string | null;
   created_at: string; items: unknown;
 };
 
@@ -346,8 +347,12 @@ function Orders() {
             <ul className="mt-2 list-disc pl-5">
               {items.map((i, k) => <li key={k}>{i.product_name} × {i.quantity} — {i.size}, {i.shape}, {i.finish}</li>)}
             </ul>
-            <p className="mt-2">TRX ID: <span className="font-mono">{o.transaction_id}</span></p>
+            <p className="mt-2">Method: <strong>{o.payment_method}</strong></p>
+            <p>Sender: <strong>{o.sender_name ?? "—"}</strong> · {o.sender_account ?? "—"}</p>
+            <p>TRX ID: <span className="font-mono">{o.transaction_id}</span> · Status: <strong>{o.payment_status}</strong></p>
             <div className="mt-3 flex flex-wrap gap-3">
+              <Button size="touch" disabled={o.payment_status === "Verified"} onClick={() => void update(o.id, { payment_status: "Verified" })}>Approve Payment</Button>
+              <Button size="touch" variant="outline" disabled={o.payment_status === "Rejected"} onClick={() => void update(o.id, { payment_status: "Rejected" })}>Reject Payment</Button>
               <label className="flex items-center gap-2">Payment
                 <select value={o.payment_status} onChange={(e) => void update(o.id, { payment_status: e.target.value })} className="min-h-12 rounded-md border border-input bg-background px-2">
                   {PAYMENT_STATUSES.map((s) => <option key={s}>{s}</option>)}

@@ -21,6 +21,10 @@ const OrderInput = z.object({
     postalCode: z.string().trim().regex(/^\d{4,10}$/),
   }),
   phone: z.string().trim().regex(/^(\+92|0)3\d{2}-?\d{7}$/),
+  orderKey: z.string().uuid(),
+  paymentMethod: z.enum(["Easypaisa", "JazzCash", "Bank Transfer"]),
+  senderName: text(100),
+  senderAccount: z.string().trim().regex(/^[A-Za-z0-9+\- ]{6,34}$/),
   transactionId: z.string().regex(/^\d{11}$/),
   voucherCode: z.string().max(40).nullable(),
   items: z
@@ -47,6 +51,23 @@ export const placeShopOrder = createServerFn({ method: "POST" })
 
     const { data: ban } = await supabaseAdmin.from("customer_bans").select("user_id").eq("user_id", userId).maybeSingle();
     if (ban) throw new Error("Your account is banned from placing orders.");
+
+    // One payment per order: a repeat submit for the same order is ignored.
+    const { data: existing } = await supabaseAdmin
+      .from("shop_orders")
+      .select("id,total_pkr,user_id")
+      .eq("id", data.orderKey)
+      .maybeSingle();
+    if (existing) {
+      if (existing.user_id !== userId) throw new Error("Invalid order.");
+      return { id: existing.id, total: existing.total_pkr, alreadySubmitted: true };
+    }
+    const { data: usedTrx } = await supabaseAdmin
+      .from("shop_orders")
+      .select("id")
+      .eq("transaction_id", data.transactionId)
+      .maybeSingle();
+    if (usedTrx) throw new Error("This Transaction ID has already been used.");
 
     // Prices always come from the server, never from the browser.
     const customIds = data.items.map((i) => i.productId).filter((id) => /^[0-9a-f-]{36}$/.test(id));
@@ -100,6 +121,7 @@ export const placeShopOrder = createServerFn({ method: "POST" })
     const { data: order, error } = await supabaseAdmin
       .from("shop_orders")
       .insert({
+        id: data.orderKey,
         user_id: userId,
         email: (context.claims as { email?: string }).email ?? null,
         full_name: data.address.fullName,
@@ -114,10 +136,18 @@ export const placeShopOrder = createServerFn({ method: "POST" })
         delivery_pkr: delivery,
         total_pkr: subtotal - discount + delivery,
         voucher_code: voucherCode,
+        payment_method: data.paymentMethod,
+        sender_name: data.senderName,
+        sender_account: data.senderAccount,
         transaction_id: data.transactionId,
+        payment_status: "Pending Verification",
       })
       .select("id,total_pkr")
       .single();
+    if (error?.code === "23505") {
+      if (error.message.includes("pkey")) throw new Error("Payment details already submitted for this order.");
+      throw new Error("This Transaction ID has already been used.");
+    }
     if (error || !order) throw new Error("Could not save your order. Please try again.");
 
     if (voucherCode) {
@@ -132,5 +162,5 @@ export const placeShopOrder = createServerFn({ method: "POST" })
           .eq("product_ref", line.product_id);
       }
     }
-    return { id: order.id, total: order.total_pkr };
+    return { id: order.id, total: order.total_pkr, alreadySubmitted: false };
   });
