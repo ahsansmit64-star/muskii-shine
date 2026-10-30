@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useState, type ChangeEvent } from "react";
+import { Fragment, useCallback, useEffect, useState, type ChangeEvent } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -426,8 +426,8 @@ function Customers() {
               const mine = orders.filter((o) => o.user_id === c.id);
               const isBanned = banned.has(c.id);
               return (
-                <>
-                  <tr key={c.id} className="border-t border-border">
+                <Fragment key={c.id}>
+                  <tr className="border-t border-border">
                     <td className="p-3 font-medium">{c.full_name || c.username || "—"}{c.username ? <span className="block text-xs text-muted-foreground">@{c.username}</span> : null}</td>
                     <td className="p-3">{c.email}</td>
                     <td className="p-3">{isBanned ? "Banned" : liveStatus(c)}</td>
@@ -450,7 +450,7 @@ function Customers() {
                       </td>
                     </tr>
                   ) : null}
-                </>
+                </Fragment>
               );
             })}
           </tbody>
