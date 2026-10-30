@@ -1,5 +1,10 @@
 import { toast } from "sonner";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
+
+const METHODS = ["Easypaisa", "JazzCash", "Bank Transfer"] as const;
+// Fill in to show bank transfer details at checkout.
+const BANK = { name: "", title: "Syed Konain Tahir", iban: "" };
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,6 +62,12 @@ function Checkout() {
   });
   const [phone, setPhone] = useState("");
   const [transactionId, setTransactionId] = useState("");
+  const [method, setMethod] = useState<(typeof METHODS)[number]>("Easypaisa");
+  const [senderName, setSenderName] = useState("");
+  const [senderAccount, setSenderAccount] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const lockRef = useRef(false);
+  const [orderKey] = useState(() => crypto.randomUUID());
   const [receiptName, setReceiptName] = useState<string | null>(null);
   const [receiptError, setReceiptError] = useState<string | null>(null);
   const [done, setDone] = useState<{ orderId: string; total: number } | null>(null);
@@ -74,11 +85,18 @@ function Checkout() {
   const delivery = freeDelivery ? 0 : DELIVERY_PKR;
 
   const placeOrder = async () => {
+    if (lockRef.current) return;
+    lockRef.current = true;
+    setSubmitting(true);
     try {
       const order = await submitOrder({
         data: {
           address,
           phone,
+          orderKey,
+          paymentMethod: method,
+          senderName,
+          senderAccount: senderAccount.trim(),
           transactionId,
           voucherCode: voucher?.code ?? null,
           items: items.map((i) => ({
@@ -91,11 +109,14 @@ function Checkout() {
           })),
         },
       });
+      if (order.alreadySubmitted) toast.info("Payment details already submitted for this order.");
       clear();
       clearReward();
       setDone({ orderId: order.id, total: order.total });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not place your order.");
+      lockRef.current = false;
+      setSubmitting(false);
     }
   };
 
@@ -145,6 +166,9 @@ function Checkout() {
   const addressValid = FIELDS.every((field) => cleanText(address[field.key], field.max).length >= 2);
   const phoneValid = PK_PHONE_REGEX.test(phone.trim());
   const transactionIdValid = /^\d{11}$/.test(transactionId);
+  const senderAccountValid = /^[A-Za-z0-9+\- ]{6,34}$/.test(senderAccount.trim());
+  const formValid =
+    phoneValid && transactionIdValid && senderAccountValid && cleanText(senderName, 100).length >= 2;
 
   return (
     <main className="mx-auto max-w-xl px-4 py-12">
@@ -210,7 +234,7 @@ function Checkout() {
           className="mt-6 grid gap-4"
           onSubmit={(event) => {
             event.preventDefault();
-            if (phoneValid && transactionIdValid) placeOrder();
+            if (formValid) void placeOrder();
           }}
         >
           <label className="block">
@@ -234,34 +258,77 @@ function Checkout() {
             ) : null}
           </label>
 
-          <section className="border-y border-border py-5">
-            <h2 className="text-lg font-bold">Easypaisa / JazzCash</h2>
-            <div className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
-              <span className="text-muted-foreground">Account Title</span>
-              <strong>Syed Konain Tahir</strong>
-              <span className="text-muted-foreground">Mobile Number</span>
-              <strong>03712280570</strong>
+          <fieldset className="border-t border-border pt-5">
+            <legend className="text-lg font-bold">Payment method</legend>
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              {METHODS.map((m) => (
+                <label
+                  key={m}
+                  className="flex min-h-12 cursor-pointer items-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-semibold has-[:checked]:border-primary"
+                >
+                  <input
+                    type="radio"
+                    name="payment-method"
+                    value={m}
+                    checked={method === m}
+                    onChange={() => setMethod(m)}
+                    className="h-5 w-5 accent-[var(--primary)]"
+                  />
+                  {m}
+                </label>
+              ))}
             </div>
+          </fieldset>
 
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <figure className="min-w-0">
+          <section className="border-b border-border pb-5">
+            <h2 className="text-base font-bold">Send payment to</h2>
+            {method === "Bank Transfer" ? (
+              BANK.iban ? (
+                <div className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+                  <span className="text-muted-foreground">Bank Name</span>
+                  <strong>{BANK.name}</strong>
+                  <span className="text-muted-foreground">Account Title</span>
+                  <strong>{BANK.title}</strong>
+                  <span className="text-muted-foreground">IBAN / Account No.</span>
+                  <strong className="break-all">{BANK.iban}</strong>
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-muted-foreground">
+                  Bank details will be shared soon. Please use Easypaisa or JazzCash for now.
+                </p>
+              )
+            ) : (
+              <>
+                <div className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+                  <span className="text-muted-foreground">Account Title</span>
+                  <strong>Syed Konain Tahir</strong>
+                  <span className="text-muted-foreground">Number</span>
+                  <strong>03712280570</strong>
+                </div>
                 <img
-                  src={easypaisaQr.url}
-                  alt="Easypaisa payment QR code for Syed Konain Tahir"
-                  className="aspect-[4/5] w-full rounded-md border border-border bg-card object-contain"
+                  src={method === "Easypaisa" ? easypaisaQr.url : jazzcashQr.url}
+                  alt={`${method} payment QR code for Syed Konain Tahir`}
+                  className="mx-auto mt-4 aspect-[4/5] w-full max-w-60 rounded-md border border-border bg-card object-contain"
                 />
-                <figcaption className="mt-1 text-center text-xs font-bold">Easypaisa</figcaption>
-              </figure>
-              <figure className="min-w-0">
-                <img
-                  src={jazzcashQr.url}
-                  alt="JazzCash payment QR code for Syed Konain Tahir"
-                  className="aspect-[4/5] w-full rounded-md border border-border bg-card object-contain"
-                />
-                <figcaption className="mt-1 text-center text-xs font-bold">JazzCash</figcaption>
-              </figure>
-            </div>
+              </>
+            )}
           </section>
+
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Sender account title / name
+            </span>
+            <Input className="min-h-12" value={senderName} maxLength={100} onChange={(e) => setSenderName(e.target.value)} required />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {method === "Bank Transfer" ? "Sender bank account number / IBAN" : "Sender mobile number"}
+            </span>
+            <Input className="min-h-12" value={senderAccount} maxLength={34} onChange={(e) => setSenderAccount(e.target.value)} required />
+            {senderAccount.length > 0 && !senderAccountValid ? (
+              <span className="mt-1 block text-xs font-medium text-destructive">Enter 6–34 letters or digits.</span>
+            ) : null}
+          </label>
 
           <label className="block">
             <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -314,11 +381,12 @@ function Checkout() {
           </label>
 
           <div className="flex gap-3">
-            <Button size="touch" variant="outline" type="button" onClick={() => setStep(1)}>
+            <Button size="touch" variant="outline" type="button" disabled={submitting} onClick={() => setStep(1)}>
               Back
             </Button>
-            <Button size="touch" type="submit" disabled={!phoneValid || !transactionIdValid}>
-              Place order
+            <Button size="touch" type="submit" disabled={!formValid || submitting}>
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+              {submitting ? "Submitting…" : "Confirm Payment"}
             </Button>
           </div>
         </form>

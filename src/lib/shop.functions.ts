@@ -162,5 +162,5 @@ export const placeShopOrder = createServerFn({ method: "POST" })
           .eq("product_ref", line.product_id);
       }
     }
-    return { id: order.id, total: order.total_pkr };
+    return { id: order.id, total: order.total_pkr, alreadySubmitted: false };
   });
