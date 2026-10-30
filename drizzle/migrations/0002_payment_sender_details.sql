@@ -1,0 +1,2 @@
+ALTER TABLE public.shop_orders ADD COLUMN IF NOT EXISTS sender_name text, ADD COLUMN IF NOT EXISTS sender_account text;
+CREATE UNIQUE INDEX IF NOT EXISTS shop_orders_transaction_id_unique ON public.shop_orders (transaction_id);

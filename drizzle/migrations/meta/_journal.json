@@ -15,6 +15,13 @@
       "when": 1791631731270,
       "tag": "0001_admin_panel_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793378968516,
+      "tag": "0002_payment_sender_details",
+      "breakpoints": true
     }
   ]
 }

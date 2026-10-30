@@ -302,6 +302,8 @@ export type Database = {
           payment_status: string
           phone: string
           postal_code: string
+          sender_account: string | null
+          sender_name: string | null
           status: string
           street: string
           subtotal_pkr: number
@@ -324,6 +326,8 @@ export type Database = {
           payment_status?: string
           phone: string
           postal_code: string
+          sender_account?: string | null
+          sender_name?: string | null
           status?: string
           street: string
           subtotal_pkr: number
@@ -346,6 +350,8 @@ export type Database = {
           payment_status?: string
           phone?: string
           postal_code?: string
+          sender_account?: string | null
+          sender_name?: string | null
           status?: string
           street?: string
           subtotal_pkr?: number
