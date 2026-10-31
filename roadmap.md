@@ -2,3 +2,7 @@
 - [x] Add Easypaisa/JazzCash checkout details, QR images, TRX ID, optional receipt upload
 - [x] Save manual-payment orders as Pending Verification
 - [x] Verify wheel and checkout flow
+- [ ] Configure Clerk sign-in/sign-up after Clerk keys are supplied
+- [ ] Enforce verified primary-admin identity and reserve admin username
+- [ ] Confirm supported five-attempt, 15-minute sign-in lockout approach
+- [ ] Preserve COD/transfer checkout and admin payment verification
