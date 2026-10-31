@@ -1,0 +1,1 @@
+ALTER TABLE public.shop_orders ALTER COLUMN transaction_id DROP NOT NULL;
