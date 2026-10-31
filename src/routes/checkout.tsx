@@ -2,7 +2,8 @@ import { toast } from "sonner";
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 
-const METHODS = ["Easypaisa", "JazzCash", "Bank Transfer"] as const;
+const METHODS = ["COD", "Easypaisa", "JazzCash", "Bank Transfer"] as const;
+const METHOD_LABEL: Record<string, string> = { COD: "Cash on Delivery (COD)" };
 // Fill in to show bank transfer details at checkout.
 const BANK = { name: "", title: "Syed Konain Tahir", iban: "" };
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -62,11 +63,12 @@ function Checkout() {
   });
   const [phone, setPhone] = useState("");
   const [transactionId, setTransactionId] = useState("");
-  const [method, setMethod] = useState<(typeof METHODS)[number]>("Easypaisa");
+  const [method, setMethod] = useState<(typeof METHODS)[number]>("COD");
   const [senderName, setSenderName] = useState("");
   const [senderAccount, setSenderAccount] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const lockRef = useRef(false);
+  const isCod = method === "COD";
   const [orderKey] = useState(() => crypto.randomUUID());
   const [receiptName, setReceiptName] = useState<string | null>(null);
   const [receiptError, setReceiptError] = useState<string | null>(null);
@@ -95,9 +97,9 @@ function Checkout() {
           phone,
           orderKey,
           paymentMethod: method,
-          senderName,
-          senderAccount: senderAccount.trim(),
-          transactionId,
+          senderName: isCod ? null : senderName,
+          senderAccount: isCod ? null : senderAccount.trim(),
+          transactionId: isCod ? null : transactionId,
           voucherCode: voucher?.code ?? null,
           items: items.map((i) => ({
             productId: i.productId,
@@ -123,10 +125,9 @@ function Checkout() {
   if (done) {
     return (
       <main className="mx-auto max-w-md px-4 py-16 text-center">
-        <h1 className="text-2xl font-bold">Order placed</h1>
+        <h1 className="text-2xl font-bold">Thank you! Your order is placed and being processed.</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Order #{done.orderId.slice(0, 8)} · {formatPKR(done.total)}. Your payment is pending
-          verification. We will message you on the number you gave us after checking the payment.
+          Order #{done.orderId.slice(0, 8)} · {formatPKR(done.total)}.
         </p>
         <div className="mt-6 flex justify-center gap-3">
           <Button size="touch" onClick={() => void navigate({ to: "/orders" })}>
@@ -168,7 +169,7 @@ function Checkout() {
   const transactionIdValid = /^\d{11}$/.test(transactionId);
   const senderAccountValid = /^[A-Za-z0-9+\- ]{6,34}$/.test(senderAccount.trim());
   const formValid =
-    phoneValid && transactionIdValid && senderAccountValid && cleanText(senderName, 100).length >= 2;
+    phoneValid && (isCod || (transactionIdValid && senderAccountValid && cleanText(senderName, 100).length >= 2));
 
   return (
     <main className="mx-auto max-w-xl px-4 py-12">
@@ -260,7 +261,7 @@ function Checkout() {
 
           <fieldset className="border-t border-border pt-5">
             <legend className="text-lg font-bold">Payment method</legend>
-            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
               {METHODS.map((m) => (
                 <label
                   key={m}
@@ -274,12 +275,15 @@ function Checkout() {
                     onChange={() => setMethod(m)}
                     className="h-5 w-5 accent-[var(--primary)]"
                   />
-                  {m}
+                  {METHOD_LABEL[m] ?? m}
                 </label>
               ))}
             </div>
           </fieldset>
 
+          {isCod ? (
+            <p className="text-sm text-muted-foreground">Pay in cash when your order is delivered. No transaction ID needed.</p>
+          ) : (<>
           <section className="border-b border-border pb-5">
             <h2 className="text-base font-bold">Send payment to</h2>
             {method === "Bank Transfer" ? (
@@ -380,13 +384,15 @@ function Checkout() {
             {receiptError ? <span className="mt-1 block text-xs font-medium text-destructive">{receiptError}</span> : null}
           </label>
 
+          </>)}
+
           <div className="flex gap-3">
             <Button size="touch" variant="outline" type="button" disabled={submitting} onClick={() => setStep(1)}>
               Back
             </Button>
             <Button size="touch" type="submit" disabled={!formValid || submitting}>
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
-              {submitting ? "Submitting…" : "Confirm Payment"}
+              {submitting ? "Submitting…" : isCod ? "Place Order" : "Confirm Payment"}
             </Button>
           </div>
         </form>

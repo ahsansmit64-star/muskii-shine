@@ -22,6 +22,13 @@
       "when": 1793378968516,
       "tag": "0002_payment_sender_details",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793455184070,
+      "tag": "0003_cod_optional_trx",
+      "breakpoints": true
     }
   ]
 }

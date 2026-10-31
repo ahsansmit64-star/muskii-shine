@@ -22,10 +22,10 @@ const OrderInput = z.object({
   }),
   phone: z.string().trim().regex(/^(\+92|0)3\d{2}-?\d{7}$/),
   orderKey: z.string().uuid(),
-  paymentMethod: z.enum(["Easypaisa", "JazzCash", "Bank Transfer"]),
-  senderName: text(100),
-  senderAccount: z.string().trim().regex(/^[A-Za-z0-9+\- ]{6,34}$/),
-  transactionId: z.string().regex(/^\d{11}$/),
+  paymentMethod: z.enum(["COD", "Easypaisa", "JazzCash", "Bank Transfer"]),
+  senderName: text(100).nullable(),
+  senderAccount: z.string().trim().regex(/^[A-Za-z0-9+\- ]{6,34}$/).nullable(),
+  transactionId: z.string().regex(/^\d{11}$/).nullable(),
   voucherCode: z.string().max(40).nullable(),
   items: z
     .array(
@@ -44,7 +44,12 @@ const OrderInput = z.object({
 
 export const placeShopOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => OrderInput.parse(data))
+  .inputValidator((data) => {
+    const d = OrderInput.parse(data);
+    if (d.paymentMethod === "COD") return { ...d, senderName: null, senderAccount: null, transactionId: null };
+    if (!d.senderName || !d.senderAccount || !d.transactionId) throw new Error("Enter your sender details and 11-digit TRX ID.");
+    return d;
+  })
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const userId = context.userId;
@@ -62,11 +67,9 @@ export const placeShopOrder = createServerFn({ method: "POST" })
       if (existing.user_id !== userId) throw new Error("Invalid order.");
       return { id: existing.id, total: existing.total_pkr, alreadySubmitted: true };
     }
-    const { data: usedTrx } = await supabaseAdmin
-      .from("shop_orders")
-      .select("id")
-      .eq("transaction_id", data.transactionId)
-      .maybeSingle();
+    const { data: usedTrx } = data.transactionId
+      ? await supabaseAdmin.from("shop_orders").select("id").eq("transaction_id", data.transactionId).maybeSingle()
+      : { data: null };
     if (usedTrx) throw new Error("This Transaction ID has already been used.");
 
     // Prices always come from the server, never from the browser.
@@ -140,7 +143,7 @@ export const placeShopOrder = createServerFn({ method: "POST" })
         sender_name: data.senderName,
         sender_account: data.senderAccount,
         transaction_id: data.transactionId,
-        payment_status: "Pending Verification",
+        payment_status: data.paymentMethod === "COD" ? "Pending (COD)" : "Submitted (Pending Verification)",
       })
       .select("id,total_pkr")
       .single();

@@ -308,7 +308,7 @@ export type Database = {
           street: string
           subtotal_pkr: number
           total_pkr: number
-          transaction_id: string
+          transaction_id: string | null
           user_id: string
           voucher_code: string | null
         }
@@ -332,7 +332,7 @@ export type Database = {
           street: string
           subtotal_pkr: number
           total_pkr: number
-          transaction_id: string
+          transaction_id?: string | null
           user_id: string
           voucher_code?: string | null
         }
@@ -356,7 +356,7 @@ export type Database = {
           street?: string
           subtotal_pkr?: number
           total_pkr?: number
-          transaction_id?: string
+          transaction_id?: string | null
           user_id?: string
           voucher_code?: string | null
         }
