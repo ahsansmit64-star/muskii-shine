@@ -125,10 +125,9 @@ function Checkout() {
   if (done) {
     return (
       <main className="mx-auto max-w-md px-4 py-16 text-center">
-        <h1 className="text-2xl font-bold">Order placed</h1>
+        <h1 className="text-2xl font-bold">Thank you! Your order is placed and being processed.</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Order #{done.orderId.slice(0, 8)} · {formatPKR(done.total)}. Your payment is pending
-          verification. We will message you on the number you gave us after checking the payment.
+          Order #{done.orderId.slice(0, 8)} · {formatPKR(done.total)}.
         </p>
         <div className="mt-6 flex justify-center gap-3">
           <Button size="touch" onClick={() => void navigate({ to: "/orders" })}>
