@@ -308,13 +308,13 @@ function Inventory() {
 
 type OrderRow = {
   id: string; full_name: string; email: string | null; phone: string; street: string; area: string; city: string;
-  postal_code: string; total_pkr: number; transaction_id: string; payment_status: string; status: string;
+  postal_code: string; total_pkr: number; transaction_id: string | null; payment_status: string; status: string;
   payment_method: string; sender_name: string | null; sender_account: string | null;
   created_at: string; items: unknown;
 };
 
-const PAYMENT_STATUSES = ["Pending Verification", "Verified", "Rejected"];
-const ORDER_STATUSES = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"];
+const PAYMENT_STATUSES = ["Pending (COD)", "Submitted (Pending Verification)", "Pending Verification", "Verified", "Rejected", "Paid (COD)"];
+const ORDER_STATUSES = ["Pending", "Processing", "Dispatched", "Shipped", "Delivered", "Cancelled"];
 
 function Orders() {
   const [orders, setOrders] = useState<OrderRow[]>([]);
@@ -349,7 +349,7 @@ function Orders() {
             </ul>
             <p className="mt-2">Method: <strong>{o.payment_method}</strong></p>
             <p>Sender: <strong>{o.sender_name ?? "—"}</strong> · {o.sender_account ?? "—"}</p>
-            <p>TRX ID: <span className="font-mono">{o.transaction_id}</span> · Status: <strong>{o.payment_status}</strong></p>
+            <p>TRX ID: <span className="font-mono">{o.transaction_id ?? "— (COD)"}</span> · Status: <strong>{o.payment_status}</strong></p>
             <div className="mt-3 flex flex-wrap gap-3">
               <Button size="touch" disabled={o.payment_status === "Verified"} onClick={() => void update(o.id, { payment_status: "Verified" })}>Approve Payment</Button>
               <Button size="touch" variant="outline" disabled={o.payment_status === "Rejected"} onClick={() => void update(o.id, { payment_status: "Rejected" })}>Reject Payment</Button>
