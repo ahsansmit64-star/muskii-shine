@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
 import { Fragment, useCallback, useEffect, useState, type ChangeEvent } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +14,12 @@ import { SIZES } from "@/lib/shop-types";
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
+  beforeLoad: async () => {
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user || data.user.email?.toLowerCase() !== "naildairiesbymuskiii@gmail.com") throw redirect({ to: "/" });
+    const { data: allowed, error: roleError } = await supabase.rpc("has_role", { _user_id: data.user.id, _role: "admin" });
+    if (roleError || !allowed) throw redirect({ to: "/" });
+  },
   head: () => ({
     meta: [
       { title: "Admin Panel — Nail by Muskii" },
@@ -21,6 +27,8 @@ export const Route = createFileRoute("/admin")({
       { name: "robots", content: "noindex" },
       { property: "og:title", content: "Admin Panel — Nail by Muskii" },
       { property: "og:description", content: "Store management for Nail by Muskii." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: AdminPage,

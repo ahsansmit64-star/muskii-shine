@@ -42,10 +42,10 @@ export const connectClerkAccount = createServerFn({ method: "POST" })
     const admin = isPrimaryAdmin(email, verified);
     if (isReservedUsername(account.username) && !admin) throw new Error("This username is reserved for the store administrator.");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: mapping, error: mappingError } = await supabaseAdmin.from("clerk_accounts" as never)
+    const { data: mapping, error: mappingError } = await supabaseAdmin.from("clerk_accounts")
       .select("user_id").eq("clerk_id", account.id).maybeSingle();
     if (mappingError) throw new Error("Account linking is temporarily unavailable.");
-    const existingId = (mapping as { user_id?: string } | null)?.user_id;
+    const existingId = mapping?.user_id;
     if (existingId) {
       const { data: existing } = await supabaseAdmin.auth.admin.getUserById(existingId);
       if (existing.user?.email?.toLowerCase() !== email) throw new Error("Contact the store before changing your linked email address.");
@@ -62,9 +62,9 @@ export const connectClerkAccount = createServerFn({ method: "POST" })
     const { data: banned, error: banError } = await supabaseAdmin.from("customer_bans").select("user_id").eq("user_id", userId).maybeSingle();
     if (banError || banned) throw new Error("This account cannot place orders or spin.");
     if (existingId && existingId !== userId) throw new Error("Account ownership could not be confirmed.");
-    const { error: bindError } = await supabaseAdmin.from("clerk_accounts" as never).upsert({
+    const { error: bindError } = await supabaseAdmin.from("clerk_accounts").upsert({
       clerk_id: account.id, user_id: userId, verified_email: email,
-    } as never, { onConflict: "clerk_id" });
+    }, { onConflict: "clerk_id" });
     if (bindError) throw new Error("Could not link your account safely.");
     if (admin) {
       const { error: roleError } = await supabaseAdmin.from("user_roles").upsert({ user_id: userId, role: "admin" }, { onConflict: "user_id,role" });

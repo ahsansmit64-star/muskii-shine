@@ -1,9 +1,14 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-
-export const ADMIN_USERNAME = "Admin_NbM_1";
-export const ADMIN_EMAIL = "admin_nbm_1@nailbymuskii.app";
+import { useAuth as useClerkAuth, useClerk, useUser } from "@clerk/react";
+import { useServerFn } from "@tanstack/react-start";
+import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate, useRouter } from "@tanstack/react-router";
+import { toast } from "sonner";
+import { connectClerkAccount } from "@/lib/clerk.functions";
+import { isPrimaryAdmin } from "@/lib/admin-identity";
+export { ADMIN_EMAIL, ADMIN_USERNAME } from "@/lib/admin-identity";
 
 type AuthValue = {
   user: User | null;
@@ -24,20 +29,61 @@ async function markPresence(userId: string, signedIn: boolean) {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const { isLoaded, isSignedIn, userId: clerkId, getToken } = useClerkAuth();
+  const { user: clerkUser } = useUser();
+  const clerk = useClerk();
+  const connect = useServerFn(connectClerkAccount);
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
-      setSession(next);
-    });
-    void supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
+    const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
+      if (event === "TOKEN_REFRESHED") setSession(next);
+      if (event === "SIGNED_OUT") {
+        setSession(null);
+        setIsAdmin(false);
+      }
     });
     return () => sub.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    let cancelled = false;
+    setLoading(true);
+    setSession(null);
+    setIsAdmin(false);
+    void (async () => {
+      try {
+        await queryClient.cancelQueries();
+        queryClient.clear();
+        await supabase.auth.signOut({ scope: "local" });
+        if (!isSignedIn || !clerkId) return;
+        const token = await getToken();
+        if (!token) throw new Error("Sign in again to continue.");
+        const linked = await connect({ data: { token } });
+        if (cancelled) return;
+        const { data, error } = await supabase.auth.verifyOtp({ token_hash: linked.tokenHash, type: "magiclink" });
+        if (error || !data.session || data.session.user.id !== linked.userId) throw new Error("Could not finish signing in.");
+        const { data: validated, error: validationError } = await supabase.auth.getUser();
+        if (validationError || !validated.user) throw new Error("Sign in again to continue.");
+        if (!cancelled) setSession(data.session);
+      } catch (error) {
+        if (!cancelled) {
+          toast.error(error instanceof Error ? error.message : "Could not sign in.");
+          await supabase.auth.signOut({ scope: "local" });
+          await clerk.signOut();
+        }
+      } finally {
+        if (!cancelled) { setLoading(false); void router.invalidate(); }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isLoaded, isSignedIn, clerkId, getToken, connect, queryClient, clerk, router]);
 
   const userId = session?.user.id ?? null;
 
@@ -58,7 +104,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await supabase.auth.signOut();
         return;
       }
-      setIsAdmin(Boolean(roles?.some((r) => r.role === "admin")));
+      const primary = clerkUser?.primaryEmailAddress;
+      setIsAdmin(isPrimaryAdmin(primary?.emailAddress, primary?.verification?.status === "verified") && Boolean(roles?.some((r) => r.role === "admin")));
       void markPresence(userId, true);
     })();
     const timer = window.setInterval(() => void markPresence(userId, true), 60000);
@@ -66,12 +113,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [userId]);
+  }, [userId, clerkUser]);
 
   const signOut = useCallback(async () => {
     if (userId) await markPresence(userId, false);
+    await queryClient.cancelQueries();
+    queryClient.clear();
     await supabase.auth.signOut();
-  }, [userId]);
+    await clerk.signOut();
+    await navigate({ to: "/auth", replace: true });
+  }, [userId, queryClient, clerk, navigate]);
 
   const value = useMemo<AuthValue>(
     () => ({

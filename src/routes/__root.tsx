@@ -9,6 +9,8 @@ import {
 } from "@tanstack/react-router";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
+import { ClerkProvider } from "@clerk/react";
+import { clerkConfiguration } from "@/lib/clerk.functions";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -83,6 +85,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  loader: () => clerkConfiguration(),
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -134,10 +137,12 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const { publishableKey } = Route.useLoaderData();
   useSourceProtection();
 
   return (
     <QueryClientProvider client={queryClient}>
+      <ClerkProvider publishableKey={publishableKey} signInUrl="/auth" signUpUrl="/sign-up" signInFallbackRedirectUrl="/" signUpFallbackRedirectUrl="/">
       <AuthProvider>
       <RewardProvider>
         <CartProvider>
@@ -155,6 +160,7 @@ function RootComponent() {
         </CartProvider>
       </RewardProvider>
       </AuthProvider>
+      </ClerkProvider>
     </QueryClientProvider>
   );
 }
