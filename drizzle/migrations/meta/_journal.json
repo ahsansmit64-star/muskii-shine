@@ -29,6 +29,13 @@
       "when": 1793455184070,
       "tag": "0003_cod_optional_trx",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793628853996,
+      "tag": "0004_clerk_verified_accounts",
+      "breakpoints": true
     }
   ]
 }
