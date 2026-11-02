@@ -14,6 +14,35 @@ export type Database = {
   }
   public: {
     Tables: {
+      clerk_accounts: {
+        Row: {
+          clerk_id: string
+          created_at: string
+          user_id: string
+          verified_email: string
+        }
+        Insert: {
+          clerk_id: string
+          created_at?: string
+          user_id: string
+          verified_email: string
+        }
+        Update: {
+          clerk_id?: string
+          created_at?: string
+          user_id?: string
+          verified_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clerk_accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custom_products: {
         Row: {
           colors: string[]
